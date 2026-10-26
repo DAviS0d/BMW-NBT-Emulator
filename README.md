@@ -16,7 +16,7 @@ Our goal is to create an immersive and interactive BMW infotainment experience f
 
 A preview of the BMW NBT Emulator interface.
 
-![BMW NBT Emulator Interface](screenshots/interface.png)
+![BMW NBT Emulator Interface](screenshots/photo1.png)
 
 ## Project Goals
 
