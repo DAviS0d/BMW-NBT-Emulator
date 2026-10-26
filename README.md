@@ -12,6 +12,12 @@ Unlike traditional interface recreations, this project aims to run the original 
 
 Our goal is to create an immersive and interactive BMW infotainment experience for automotive enthusiasts, developers, and simulator builders.
 
+## Preview
+
+A preview of the BMW NBT Emulator interface.
+
+![BMW NBT Emulator Interface](screenshots/interface.png)
+
 ## Project Goals
 
 - **Original BMW NBT Experience** — Bring the authentic BMW NBT iDrive interface to Windows.
