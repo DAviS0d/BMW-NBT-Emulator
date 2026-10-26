@@ -52,8 +52,6 @@ No public download is available yet. Releases will be published here when ready.
 
 The project is **closed-source**, meaning its original source code is not publicly available.
 
-Public releases may be made available through GitHub Releases when the project is ready.
-
 Third-party components remain subject to their respective licenses.
 
 ## Developers
