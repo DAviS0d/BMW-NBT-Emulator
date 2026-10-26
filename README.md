@@ -53,13 +53,13 @@ Third-party components remain subject to their respective licenses.
 Developed collaboratively by:
 
 - **davisod**
-- **JetsKi**
+- **JEtsKi**
 
 ## License
 
 BMW NBT Emulator is intended to be distributed as proprietary freeware.
 
-Copyright © 2026 davisod & JetsKi. All rights reserved.
+Copyright © 2026 davisod & JEtsKi. All rights reserved.
 
 Distribution and use of future releases will be governed by their accompanying license terms. Third-party software is subject to its own licenses.
 
