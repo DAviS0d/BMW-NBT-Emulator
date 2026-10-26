@@ -4,6 +4,12 @@
 
 An independent project bringing the original BMW NBT iDrive experience to Windows.
 
+## Preview
+
+A preview of the BMW NBT Emulator interface.
+
+![BMW NBT Emulator Interface](screenshots/photo1.png)
+
 ## About
 
 BMW NBT Emulator is a Windows-based project developed to bring the original BMW NBT infotainment experience to personal computers.
@@ -11,12 +17,6 @@ BMW NBT Emulator is a Windows-based project developed to bring the original BMW 
 Unlike traditional interface recreations, this project aims to run the original BMW NBT software environment, preserving the authentic look, behavior, animations, and functionality of the iDrive system.
 
 Our goal is to create an immersive and interactive BMW infotainment experience for automotive enthusiasts, developers, and simulator builders.
-
-## Preview
-
-A preview of the BMW NBT Emulator interface.
-
-![BMW NBT Emulator Interface](screenshots/photo1.png)
 
 ## Project Goals
 
@@ -48,6 +48,8 @@ Additional information, screenshots, and releases will be published when availab
 
 BMW NBT Emulator is intended to be distributed **free of charge**.
 
+No public download is available yet. Releases will be published here when ready.
+
 The project is **closed-source**, meaning its original source code is not publicly available.
 
 Public releases may be made available through GitHub Releases when the project is ready.
@@ -58,8 +60,8 @@ Third-party components remain subject to their respective licenses.
 
 Developed collaboratively by:
 
-- **davisod**
-- **JEtsKi**
+- [davisod](https://github.com/DAviS0d)
+- [JEtsKi](https://github.com/JEtsKi8271)
 
 ## License
 
