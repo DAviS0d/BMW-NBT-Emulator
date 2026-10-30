@@ -8,8 +8,6 @@ An independent project bringing the original BMW NBT iDrive experience to Window
 
 A preview of the BMW NBT Emulator interface.
 
-![BMW NBT Emulator Interface](screenshots/photo1.png)
-
 ![Original main menu running in the emulator](docs/screenshots/meniu-principal.png)
 
 ![M startup animation (EVA), chosen from the vehicle coding](docs/screenshots/pornire-m.png)
