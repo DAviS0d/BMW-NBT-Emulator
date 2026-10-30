@@ -1,0 +1,17 @@
+# © 2026 davisod & JEtsKi
+# Firmware și date derivate din firmware: nu se publică (vezi README, „Firmware”).
+*.ifs
+outputs/NBT_files/
+outputs/NBT_emulation_research/btld_*/
+work/graphics-port/host/shader-cache/
+work/graphics-port/syset-native/hmi_native_coding_schema.json
+work/startup-analysis/frames/
+
+# Rulări și jurnale
+**/runs/
+**/viewer-runs/
+*.ppm
+*.log
+__pycache__/
+*.pyc
+**/nbt-shader-*.bin
