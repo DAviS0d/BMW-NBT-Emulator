@@ -1,0 +1,16 @@
+{
+  "type": "CUSTOM_GRAPHICS_PROBE_NOT_NBT_HMI",
+  "sha256": "1dc9115d64d332016c7190b9b8b0cc4da7dfe3221faa3847c575843af17c183a",
+  "original_startup_instructions_preserved": true,
+  "extra_files": [
+    {
+      "path": "boot/lib/libnbtgl.so",
+      "source": "C:\\Users\\david\\Documents\\NBT_emulator\\work\\bridge-v2\\guest\\libnbtgl.so",
+      "sha256": "aa785fdfa3b22c96b7131ae8801f60984db81e902975bd00e896ae642f0182b2",
+      "replaced_existing_file": true,
+      "previous_sha256": "1fa0cb4aaa21b57b9c931c2d27d4494097765e7932891f2d016f7a181b02a05d"
+    }
+  ],
+  "command": "/boot/bin/devb-ram disk name=nbtram ram capacity=1,nodinit blk ramdisk=32m,cache=512k,vnode=256; /boot/bin/waitfor /dev/ram0 2; /boot/bin/mkqnx6fs -q -u 1d085b0d-9736-4c2a-8d5a-7f3bb84c683c /dev/ram0; /boot/bin/mount -t qnx6 -o sync=optional /dev/ram0 /fs/sda1; /boot/bin/mkdir -p /var/opt/hmi/data/rw /var/tmp /var/srv; /boot/bin/ln -sP /var/tmp /tmp; /boot/bin/ln -sP /var/srv /srv; echo NBT_QNX_BASE_SERVICES; /boot/bin/pipe & /boot/bin/mqueue & /boot/bin/sleep 1; /boot/bin/ls -ld /dev/pipe /dev/mqueue /dev/sem; /boot/bin/slogger; /boot/bin/io-pkt-v4; /boot/bin/ifconfig lo0 127.0.0.1; /boot/bin/servicebroker -c & /boot/bin/sleep 1; OTF_FILE_TRACE_STDOUT=1 /boot/bin/BMWOTFagent /etc/nbt_otf_file.cfg & /boot/bin/waitfor /dev/BMWOTFagent 2; /boot/bin/ls -ld /opt/hmi/data/ro /opt/hmi/data/ro/bmw /opt/hmi/data/ro/common; echo NBT_SOFT_WAL_TEST_START; echo NBT_ORIGINAL_BIO_SERVER_START; /boot/bin/watchdog & /boot/bin/waitfor /dev/biomgr 3; /boot/bin/ls -l /dev/biomgr; echo NBT_ORIGINAL_MOST_START; /boot/bin/mkdir -p /var/opt/sys; IPC_IP_ADDRESS=127.0.0.1 HB_HEARTBEAT_INTERVAL=2 MALLOC_ARENA_SIZE=65536 /boot/bin/most --dsiwaitforboot=1 --trccachesize=500 --bp=/opt/sys/etc --bp=/var/opt/sys --poweron=true --devmode=client --serverRoleName=MOSTSubSystemServer --mapMOSTSubSystem.DSYSMOSTServer=MOSTSubSystemIntel.DSYSMOSTServer --SIPCProtocol=tcp --heartbeat-interval=2 & /boot/bin/sleep 2; echo NBT_ORIGINAL_MTP_INPUT_START; /boot/bin/mtp2most -p 50123 & echo HMI_ORIGINAL_RUN_TEST; LD_PRELOAD=/boot/lib/libnbt_offline_syset.so:/boot/lib/libnbt_otf_quiet.so:/boot/lib/libnbt_wal_threaded.so:/boot/lib/libnbtgl.so:/boot/lib/libnbt_hmi_adapter.so /boot/bin/HmiMain3D -c=DSI,MOSTSubSystemIntel -ro=/opt/hmi/data/ro/ -rw=/var/opt/hmi/data/rw/ -sp=/var/opt/hmi/data/rw/ -vp=/opt/hmi/data/ro/ -cp=/opt/hmi/data/ro/ -iba1=/mnt/data/iba/swe1/ -iba2=/mnt/data/iba/anim-all/swe2/ -h=0 -z=4 -p1=12 -p1i=12 -brand=bmw -nobreak & hmi_probe_pid=$!; /boot/bin/sleep 15; echo HMI_WAIT_STATE; /boot/bin/pidin -p HmiMain3D threads; /boot/bin/sloginfo; /boot/bin/pidin ar; wait $hmi_probe_pid; echo HMI_RUN_EXIT=$?",
+  "repaired_root_paths": []
+}

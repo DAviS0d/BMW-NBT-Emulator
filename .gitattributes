@@ -1,1 +1,2 @@
 work/bridge-v2/ifs/walthread_keyboard_dma_v2.ifs filter=lfs diff=lfs merge=lfs -text
+work/bridge-v2/ifs/walthread_keyboard_dma_v2_prio.ifs filter=lfs diff=lfs merge=lfs -text
