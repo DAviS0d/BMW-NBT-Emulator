@@ -22,7 +22,6 @@ Our goal is to create an immersive and interactive BMW infotainment experience f
 
 Technically, the original firmware (`HU_NBT 003_009_004`, Intel side: QNX 6.5 x86 with the `HmiMain3D` interface) runs unmodified in QEMU. Its GLES graphics are forwarded to a Windows renderer (ANGLE) through our own bridge.
 
-**This repository does not contain any firmware.** See [Firmware](#firmware).
 
 ## What works
 
@@ -55,7 +54,6 @@ Our long-term vision is to provide a flexible and realistic platform that combin
 - Windows 10/11 x64 with **Windows Hypervisor Platform** enabled (Windows Features → "Windows Hypervisor Platform").
 - **Python 3** with Tkinter, through the `py` launcher (from python.org). Tested with Python 3.14.
 - A graphics card with Direct3D 11.
-- The firmware (see below).
 
 QEMU 11.1.0 and ANGLE are included (see `NOTICE.md`).
 
@@ -71,7 +69,7 @@ The emulator expects the firmware-derived files **at exactly these paths**. If a
 | `work/graphics-port/syset-native/hmi_native_coding_schema.json` | coding descriptors from `HmiMain3D` (startup screen) | no |
 | `outputs/NBT_files/00001e6b/Intel/fs/sda0/repository/istep/opt/car/data/eva/images/` | EVA startup resources (`eva_splash_*.png`, `eva_ani_*.pdds`) | no |
 
-Without the optional files, the emulator starts without the startup screen. The firmware belongs to BMW AG / Harman / NVIDIA and is not distributed here.
+Without the optional files, the emulator starts without the startup screen. The firmware belongs to BMW AG / Harman / NVIDIA.
 
 ## How to run
 
@@ -104,12 +102,6 @@ Open an issue on GitHub ("Issues" → "New issue") with:
 2. your Windows version, Python version and graphics card;
 3. the file `work/graphics-port/hmi-runner/viewer-runs/<latest>/verification.json`;
 4. from `work/graphics-port/hmi-runner/runs/<latest run>/`: `serial_com1.log` and `relay/renderer-stderr.log`.
-
-Do not attach firmware or coding files.
-
-## Building from source (optional)
-
-The GLES bridge (`work/bridge-v2/`) builds with Zig 0.15.2 (expected in `work/graphics-port/toolchain/zig-x86_64-windows-0.15.2/`) and the ANGLE headers: `py -3 work/bridge-v2/build.py`. Prebuilt binaries are included. The bridge specification is in `docs/SPEC_GLES_BRIDGE.md`.
 
 ## Credits
 
