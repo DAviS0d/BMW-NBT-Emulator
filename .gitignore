@@ -8,4 +8,14 @@
 *.log
 __pycache__/
 *.pyc
+# Local firmware-derived analysis and prepared boot images
+/outputs/native-integration/
+/outputs/NBT_launcher/
+/work/graphics-port/hmi-runner/boot-cache/
+/work/graphics-port/hmi-runner/vehicle-state.json
+/work/graphics-port/toolchain/
+/work/bridge-v2/guest/libnbtgl-native.so
+/work/bridge-v2/ifs/*_native.ifs
+/work/bridge-v2/ifs/*_native.manifest.json
+/work/graphics-port/hmi-runner/map-cache/
 **/nbt-shader-*.bin

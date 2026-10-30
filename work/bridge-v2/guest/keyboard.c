@@ -132,6 +132,9 @@ int nbt_keyboard_packet(const uint8_t *pkt, uint32_t len)
         NBT_LOG("NBT_KEYBOARD_NATIVE_QUEUE_NOT_READY key=%u type=%u\n", key, s.type);
         return -1;
     }
+#ifdef NBT_EXPERIMENTAL_NATIVE
+    if (key == 7 && pressed) nbt_native_devices_request_selection(14);
+#endif
     uint8_t *ev = (uint8_t *)((fn_void)fw_addr(ADDR_EVENT_FACTORY))();
     if (!ev) {
         NBT_LOG("NBT_KEYBOARD_FACTORY_FAILED key=%u\n", key);

@@ -25,6 +25,13 @@ Technically, the original firmware (`HU_NBT 003_009_004`, Intel side: QNX 6.5 x8
 
 ## What works
 
+The optional integrated profile adds a desktop launcher, local web controls,
+cached boot preparation, simulated native Sport displays, and an OEM-inspired
+OpenStreetMap display opened from the original Navigation entry. Build it with
+`py -3.12 tools/build_native_profile.py`, then run `RUN_NBT.cmd`.
+See [integration setup and verified limits](docs/NATIVE_INTEGRATION.md).
+CarPlay/Android Auto entries are experimental; CarPlay connection work is postponed.
+
 - The original QNX kernel and the original `HmiMain3D` interface at 1280×480.
 - The main menu and its pages (Settings, Vehicle information, Telephone, Radio, Multimedia…).
 - iDrive control from the keyboard or the on-screen buttons: rotate, OK, Back, Menu, tilt, OPTION, RADIO / MEDIA / NAV / TEL. The native key codes come from the firmware.

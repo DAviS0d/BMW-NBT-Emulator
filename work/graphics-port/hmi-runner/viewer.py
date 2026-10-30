@@ -14,6 +14,8 @@ import sys
 import threading
 import time
 import traceback
+import socket
+import io
 from datetime import datetime, timezone
 from pathlib import Path
 import tkinter as tk
@@ -27,6 +29,7 @@ WORKSPACE = HERE.parents[2]
 # The _prio image also starts the MTP bridge at priority 13, so the keyboard is
 # ready at ~14 s instead of ~98 s (work/bridge-v2/build_ifs_prio.py).
 DEFAULT_IFS = WORKSPACE / "work/bridge-v2/ifs/walthread_keyboard_dma_v2_prio.ifs"
+NATIVE_IFS = WORKSPACE / "work/bridge-v2/ifs/walthread_keyboard_dma_v2_native.ifs"
 DEFAULT_RENDERER = WORKSPACE / "work/bridge-v2/host/nbt-glhost-v2.exe"
 # --legacy / --fast: the previous default DMA image (qemu-mhi2-derived bridge).
 LEGACY_IFS = WORKSPACE / "work/graphics-port/guest/walthread_keyboard_dma_navigation_hmi_probe_app12_trace_quiet.ifs"
@@ -57,13 +60,24 @@ def utc_now():
 
 
 class LiveViewer:
-    def __init__(self, root, smoke_seconds=None, software=False, previous=False, fast=False, legacy=False):
+    def __init__(self, root, smoke_seconds=None, software=False, previous=False, fast=False, legacy=False, native=False):
         self.root = root
         self.smoke_seconds = smoke_seconds
         self.software = software
+        self.native_extensions = native
+        self.active_extension = None
+        self.extension_surface = None
+        self.extension_photo = None
+        self.extension_frame = None
+        self.extension_loading = False
+        self.extension_last_poll = 0
+        import run_hmi
+        self.accelerator = 'tcg' if software or not run_hmi.hypervisor_available() else 'whpx'
         self.dma_transport = not software and not previous
         self.poll_ms = 16 if self.dma_transport else 33
-        if software or previous:
+        if native:
+            self.source_ifs, self.renderer_path = NATIVE_IFS, DEFAULT_RENDERER
+        elif software or previous:
             self.source_ifs, self.renderer_path = (SOFTWARE_IFS if software else PREVIOUS_IFS), None
         elif fast:
             self.source_ifs, self.renderer_path = LEGACY_IFS, FAST_RENDERER
@@ -96,7 +110,7 @@ class LiveViewer:
         self.proof = {
             "test": "ACTUAL_ORIGINAL_NBT_LIVE_VIEWER",
             "started_utc": utc_now(), "source_ifs": str(self.source_ifs),
-            "accelerator": "tcg" if software else "whpx",
+            "accelerator": self.accelerator,
             "frame_publication": "legacy_pixel_writes" if software else "cached_rgb_block",
             "renderer_transport": "bounded_guest_dma" if self.dma_transport else "legacy",
             "renderer": str(self.renderer_path) if self.renderer_path else "default",
@@ -111,7 +125,7 @@ class LiveViewer:
             "events": [],
         }
 
-        root.title("BMW NBT — vizualizare live")
+        root.title("BMW NBT — Live viewer")
         root.configure(background="#101010")
         root.protocol("WM_DELETE_WINDOW", lambda: self.request_close("window_close"))
         screen_width, screen_height = root.winfo_screenwidth(), root.winfo_screenheight()
@@ -123,28 +137,28 @@ class LiveViewer:
 
         top = tk.Frame(root, background="#101010")
         top.pack(fill="x", padx=14, pady=(10, 6))
-        tk.Label(top, text="BMW NBT · imagine live din firmware-ul original",
+        tk.Label(top, text="BMW NBT · Live original firmware display",
                  background="#101010", foreground="#f0f0f0", font=("Segoe UI", 12)).pack(side="left")
-        self.stop_button = ttk.Button(top, text="Oprește", command=self.request_stop)
+        self.stop_button = ttk.Button(top, text="Stop", command=self.request_stop)
         self.stop_button.pack(side="right")
         frame = tk.Frame(root, background="black", width=self.max_frame_width,
                          height=self.max_frame_height)
         frame.pack(fill="both", expand=True, padx=14)
         frame.pack_propagate(False)
-        self.image_label = tk.Label(frame, text="Se pornește QNX și interfața originală…",
+        self.image_label = tk.Label(frame, text="Starting QNX and the original interface…",
                                     background="black", foreground="#b8b8b8", font=("Segoe UI", 11))
         self.image_label.place(relx=.5, rely=.5, anchor="center")
         self._start_startup_screen()
         controls = tk.Frame(root, background="#101010")
         controls.pack(fill="x", padx=14, pady=(8, 0))
         for label, action in (("↑", "up"), ("↓", "down"), ("OK", "select"),
-                              ("Înapoi", "back"), ("Meniu", "menu")):
+                              ("Back", "back"), ("Menu", "menu")):
             button = ttk.Button(controls, text=label, width=9, state="disabled", takefocus=False,
                                 command=lambda name=action: self._send_action(name, "button"))
             button.pack(side="left", padx=(0, 6))
             button.bind("<Return>", lambda event: self._send_action("select", "keyboard"))
             self.control_buttons.append(button)
-        self.controller_note = tk.StringVar(value="Se așteaptă adaptorul de tastatură…")
+        self.controller_note = tk.StringVar(value="Waiting for the keyboard adapter…")
         tk.Label(controls, textvariable=self.controller_note, background="#101010",
                  foreground="#b8b8b8", anchor="w", font=("Segoe UI", 9)).pack(side="left", padx=(5, 0))
         # Remaining iDrive controls: tilt and console keys (native key codes in session.py).
@@ -157,12 +171,12 @@ class LiveViewer:
                                 command=lambda name=action: self._send_action(name, "button"))
             button.pack(side="left", padx=(0, 6))
             self.control_buttons.append(button)
-        self.status = tk.StringVar(value="Pornire… Prima imagine apare după un cadru prezentat de renderer.")
+        self.status = tk.StringVar(value="Starting… Waiting for the first rendered frame.")
         tk.Label(root, textvariable=self.status, background="#101010", foreground="#d0d0d0",
                  anchor="w", font=("Segoe UI", 9)).pack(fill="x", padx=14, pady=(7, 0))
-        tk.Label(root, text="↑ / ↓ sau rotiță · Enter = OK · Esc/Backspace = Înapoi · M = Meniu · "
-                            "← / → = înclinare (Shift+↑/↓ sus/jos) · O = Option · "
-                            "F1 Meniu · F2 Radio · F3 Media · F4 Nav · F5 Tel",
+        tk.Label(root, text="↑ / ↓ or mouse wheel · Enter = OK · Esc/Backspace = Back · M = Menu · "
+                            "← / → = tilt (Shift+↑/↓ up/down) · O = Option · "
+                            "F1 Menu · F2 Radio · F3 Media · F4 Nav · F5 Tel",
                  background="#101010", foreground="#999999", anchor="w", font=("Segoe UI", 9)).pack(
                      fill="x", padx=14, pady=(3, 10))
         for sequence, action in (("<Up>", "up"), ("<Down>", "down"), ("<Return>", "select"),
@@ -200,6 +214,7 @@ class LiveViewer:
                         info, self.stop_event,
                         on_event=lambda event: self.messages.put(("controller", event)),
                         rotary_version=1,
+                        native_extension=self.native_extensions,
                         button_hold_seconds=.020 if self.dma_transport else .075,
                         button_release_gap_seconds=0 if self.dma_transport else .075)
                     self.controller.start()
@@ -210,7 +225,7 @@ class LiveViewer:
                 stop_event=self.stop_event,
                 on_ready=ready, idle_sleep=True,
                 capture_protocol=False, retain_boot_image=False,
-                accelerator='tcg' if self.software else 'whpx',
+                accelerator=self.accelerator,
                 direct_renderer=not self.software,
                 block_publication=not self.software,
                 dma_transport=self.dma_transport,
@@ -310,6 +325,27 @@ class LiveViewer:
             button.configure(state="normal" if enabled else "disabled")
 
     def _send_action(self, name, source="keyboard"):
+        if self.active_extension:
+            if name in ('back', 'menu'):
+                self._close_extension()
+                if name == 'back':
+                    return 'break'
+            elif name == 'option' and self.active_extension == 'navigation':
+                self._navigation_destination()
+                return 'break'
+            elif self.extension_surface:
+                surface = self.extension_surface
+                kind = self.active_extension
+                def dispatch():
+                    try:
+                        if kind == 'carplay':
+                            surface.action('carplay', name)
+                        else:
+                            surface.action(name)
+                    except Exception as error:
+                        self.messages.put(('extension_error', str(error)))
+                threading.Thread(target=dispatch, daemon=True).start()
+                return 'break'
         if (name not in VIEWER_ACTIONS or
                 not self.controller_configured or self.stop_event.is_set() or self.worker_finished or
                 self.controller is None or not self.controller.ready):
@@ -327,27 +363,33 @@ class LiveViewer:
         kind = event.get("kind", "unknown")
         counts = self.proof["controller_event_counts"]
         counts[kind] = counts.get(kind, 0) + 1
+        if kind == 'native_device_selected':
+            self._activate_extension(event['source'])
+            return
+        if kind == 'extension_action':
+            self._send_action(event['action'],'native_controller')
+            return
         if kind == "controller_configured":
             self.controller_configured = True
             self.proof["controller_configured_event_seen"] = True
             self.proof["native_controller_handle"] = event.get("handle")
             self.proof["native_input_backend"] = event.get("backend")
             self._set_controls_enabled(True)
-            self.controller_note.set("Tastatura conectata · săgeți, Enter, Esc, M")
+            self.controller_note.set("Keyboard connected · arrows, Enter, Esc, M")
             self._event("native_controller_configured", handle=event.get("handle"),
                         backend=event.get("backend"))
             self._write_verification()
         elif kind == "action_sent":
             self.proof["last_native_action"] = event.get("action")
-            self.controller_note.set("Tastatura conectata · comandă trimisă: " + str(event.get("action")))
+            self.controller_note.set("Keyboard connected · command sent: " + str(event.get("action")))
             self._event("native_action_sent", action=event.get("action"), handle=event.get("handle"))
         elif kind == "action_rejected":
-            self.controller_note.set("Comandă refuzată de sesiunea nativă.")
+            self.controller_note.set("Command rejected by the native session.")
             self._event("native_action_rejected", action=event.get("action"), error=event.get("error"))
         elif kind in ("input_session_ended", "transport_closed", "input_session_closed"):
             self.controller_configured = False
             self._set_controls_enabled(False)
-            self.controller_note.set("Tastatură oprită" if self.stop_event.is_set() else "Conexiunea tastaturii s-a închis.")
+            self.controller_note.set("Keyboard stopped" if self.stop_event.is_set() else "Keyboard connection closed.")
             self._event(kind, error=event.get("error"))
 
     def _poll_messages(self):
@@ -362,7 +404,7 @@ class LiveViewer:
                 self.proof["input_port"] = data.get("input_port")
                 self._event("run_ready", run_directory=str(self.run_directory))
                 if not self.stop_event.is_set():
-                    self.status.set("QNX pornește… Se așteaptă primul cadru real.")
+                    self.status.set("QNX is starting… Waiting for the first frame.")
             elif kind == "controller":
                 self._handle_controller_event(data)
             elif kind == "done":
@@ -374,9 +416,9 @@ class LiveViewer:
                 self._set_controls_enabled(False)
                 hmi = data.get("hmi", {})
                 if hmi.get("crash_signal"):
-                    self.status.set(f"HMI s-a oprit: {hmi['crash_signal']} la {hmi.get('crash_ip')}. Jurnalele sunt păstrate.")
+                    self.status.set(f"HMI stopped: {hmi['crash_signal']} at {hmi.get('crash_ip')}. Logs have been saved.")
                 elif not self.close_requested:
-                    self.status.set("Emulator oprit. Ultimul cadru real rămâne afișat.")
+                    self.status.set("Emulator stopped. The last frame remains displayed.")
                 self._write_verification()
             elif kind == "error":
                 self.worker_error = data["error"]
@@ -384,11 +426,147 @@ class LiveViewer:
                 self.proof["cleanup_completed"] = True
                 self.stop_button.configure(state="disabled")
                 self._set_controls_enabled(False)
-                self.status.set("Pornirea a eșuat. Detalii: " + str(self.proof_directory / "worker-error.txt"))
+                self.status.set("Startup failed. Details: " + str(self.proof_directory / "worker-error.txt"))
                 self._event("worker_error", error=data["error"])
                 self._write_verification()
+            elif kind == 'extension_ready':
+                if self.active_extension == data[0]:
+                    self.extension_surface = data[1]
+                    self.status.set(data[0].replace('_', ' ').title() + ' · Back returns to iDrive')
+                else:
+                    threading.Thread(target=data[1].close, daemon=True).start()
+            elif kind == 'extension_error':
+                self.status.set(str(data))
+                self._event('extension_error', detail=str(data))
+
+    def _activate_extension(self, kind):
+        if kind not in ('android_auto', 'carplay', 'navigation', 'bluetooth'):
+            return
+        self._close_extension()
+        self.active_extension = kind
+        self._publish_extension_state(False)
+        self.image_label.configure(image='', text='Starting ' + kind.replace('_', ' ').title() + '…')
+        self._event('native_extension_selected', source=kind)
+        def start():
+            try:
+                if kind == 'carplay':
+                    from projection_bridge import ProjectionBridge
+                    surface = ProjectionBridge()
+                    state = surface.status('carplay', refresh=True)
+                    if not state['available']:
+                        raise RuntimeError(state['message'])
+                elif kind == 'navigation':
+                    from navigation_surface import NavigationSurface
+                    surface = NavigationSurface()
+                elif kind == 'bluetooth':
+                    from bluetooth_surface import BluetoothSurface
+                    surface = BluetoothSurface()
+                else:
+                    from android_surface import AndroidSurface
+                    surface = AndroidSurface()
+                    surface.start()
+                self.messages.put(('extension_ready', (kind, surface)))
+            except Exception as error:
+                self.messages.put(('extension_error', str(error)))
+        threading.Thread(target=start, daemon=True).start()
+
+    def _close_extension(self):
+        surface = self.extension_surface
+        self.active_extension = None
+        self._publish_extension_state(False)
+        self.extension_surface = None
+        self.extension_frame = None
+        self.extension_photo = None
+        self.last_frame_stamp = None
+        self._extension_digest = None
+        if surface:
+            threading.Thread(target=surface.close, daemon=True).start()
+
+    def _publish_extension_state(self, ready):
+        if self.run_directory:
+            try:
+                path=self.run_directory/'extension-state.json'
+                temporary=path.with_suffix('.tmp')
+                temporary.write_text(json.dumps({'active':self.active_extension,'ready':ready}),encoding='utf-8')
+                temporary.replace(path)
+            except OSError:
+                pass
+
+    def _navigation_destination(self):
+        from tkinter import simpledialog
+        value = simpledialog.askstring('Navigation destination', 'Destination latitude, longitude (example: 44.4377, 26.0974)', parent=self.root)
+        if value and self.extension_surface:
+            try:
+                latitude, longitude = map(float, value.split(','))
+                self.extension_surface.configure(destination=(latitude, longitude))
+            except ValueError as error:
+                self.status.set('Invalid destination: ' + str(error))
+
+    def _load_extension_frame(self):
+        if not self.active_extension or not self.extension_surface:
+            return
+        frame = self.extension_frame
+        if frame and frame[0] == self.active_extension:
+            digest = hashlib.sha256(frame[1]).hexdigest()
+            if digest != getattr(self, '_extension_digest', None):
+                self._extension_digest = digest
+                photo = tk.PhotoImage(master=self.root, data=frame[1], format='PPM')
+                divisor = max(1, math.ceil(photo.width()/self.max_frame_width), math.ceil(photo.height()/self.max_frame_height))
+                self.extension_photo = photo if divisor == 1 else photo.subsample(divisor, divisor)
+                self.image_label.configure(image=self.extension_photo, text='')
+                if self.run_directory:
+                    try:
+                        frame_path=self.run_directory/'extension-frame.ppm'
+                        temporary=frame_path.with_suffix('.tmp')
+                        temporary.write_bytes(frame[1])
+                        temporary.replace(frame_path)
+                        self._publish_extension_state(True)
+                    except OSError:
+                        pass
+                self.proof['native_extension_displayed'] = self.active_extension
+                if self.proof.get('native_extension_first_frame') != self.active_extension:
+                    (self.proof_directory / (self.active_extension + '-first-frame.ppm')).write_bytes(frame[1])
+                    self.proof['native_extension_first_frame'] = self.active_extension
+                    self._event('native_extension_frame_displayed', source=self.active_extension)
+                    self._write_verification()
+        if self.extension_loading or time.monotonic()-self.extension_last_poll < .07:
+            return
+        self.extension_loading = True
+        self.extension_last_poll = time.monotonic()
+        kind, surface = self.active_extension, self.extension_surface
+        def fetch():
+            try:
+                if kind == 'carplay':
+                    from PIL import Image
+                    encoded = surface.frame('carplay')
+                    output = io.BytesIO()
+                    with Image.open(io.BytesIO(encoded)) as image:
+                        image.convert('RGB').save(output, format='PPM')
+                    payload = output.getvalue()
+                else:
+                    if kind == 'navigation':
+                        now = time.monotonic()
+                        elapsed = min(1, now-getattr(self, '_navigation_tick', now))
+                        self._navigation_tick = now
+                        try:
+                            telemetry_path = HERE / 'vehicle-state.json'
+                            telemetry = json.loads(telemetry_path.read_text(encoding='utf-8'))
+                            speed = telemetry.get('speed_kph', 0) if time.time()-telemetry_path.stat().st_mtime < 3 else 0
+                            surface.advance(elapsed, float(speed))
+                        except (OSError, ValueError, TypeError):
+                            pass
+                    payload = surface.frame()
+                if payload and self.active_extension == kind and self.extension_surface is surface:
+                    self.extension_frame = kind, payload
+            except Exception as error:
+                self.messages.put(('extension_error', str(error)))
+            finally:
+                self.extension_loading = False
+        threading.Thread(target=fetch, daemon=True).start()
 
     def _load_actual_frame(self):
+        if self.active_extension:
+            return
         if self.run_directory is None:
             return
         if not self.presentations_seen:
@@ -452,7 +630,7 @@ class LiveViewer:
                             display_dimensions=[displayed.width(), displayed.height()])
                 self._write_verification()
             if not self.stop_event.is_set() and not self.worker_finished:
-                self.status.set(f"Live · cadru original {width} × {height} · Oprește sau închide fereastra pentru oprire.")
+                self.status.set(f"Live · original frame {width} × {height} · Stop or close the window to stop.")
         except (OSError, ValueError, tk.TclError):
             # A renderer replaces its current frame atomically. Keep the last
             # valid image if file replacement or decoding overlaps this poll.
@@ -462,10 +640,11 @@ class LiveViewer:
         if self.stop_event.is_set():
             return
         self.stop_event.set()
+        self._close_extension()
         self.stop_button.configure(state="disabled")
         self._set_controls_enabled(False)
-        self.controller_note.set("Se închide conexiunea tastaturii…")
-        self.status.set("Se oprește emulatorul și se închid procesele…")
+        self.controller_note.set("Closing the keyboard connection…")
+        self.status.set("Stopping the emulator and its processes…")
         self._event("stop_requested")
 
     def request_close(self, reason):
@@ -504,7 +683,13 @@ class LiveViewer:
 
     def _poll(self):
         self._poll_messages()
+        self._load_extension_frame()
         self._load_actual_frame()
+        if self.worker_finished and not self.worker.is_alive():
+            instance = getattr(self, '_instance_socket', None)
+            if instance is not None:
+                instance.close()
+                self._instance_socket = None
         if self.smoke_seconds is not None:
             if (self.first_frame_time is not None and not self.close_requested and
                     time.monotonic() - self.first_frame_time >= self.smoke_seconds):
@@ -530,19 +715,36 @@ def main():
                         help='Previous default DMA image with the faster legacy renderer (nbt-glhost-dma-fast.exe)')
     parser.add_argument('--legacy', action='store_true',
                         help='Previous default DMA profile (qemu-mhi2-derived bridge, nbt-glhost-dma.exe)')
+    parser.add_argument('--native', action='store_true', help='Use the experimental native menu and sport-gauge profile')
+    parser.add_argument('--original', action='store_true', help='Use the original profile without integrated features')
     args = parser.parse_args()
+    if not any((args.original,args.software,args.previous,args.fast,args.legacy,args.native)):
+        args.native = NATIVE_IFS.exists()
+    # Hold the launch guard only while this viewer owns an active VM.
+    # Diagnostic smoke runs remain independently runnable.
+    instance = None
+    if args.smoke_test is None:
+        from webui import current
+        if current()[0]:
+            return
+        instance = socket.socket()
+        try:
+            instance.bind(('127.0.0.1', 8878))
+        except OSError:
+            instance.close()
+            return
     if args.smoke_test is not None and not 0 < args.smoke_test <= 300:
         parser.error("--smoke-test requires a duration above 0 and at most 300 seconds")
-    if sum(map(bool, (args.software, args.previous, args.fast, args.legacy))) > 1:
+    if sum(map(bool, (args.original,args.software, args.previous, args.fast, args.legacy, args.native))) > 1:
         parser.error("choose at most one of --software, --previous, --fast, --legacy")
     if not any((args.software, args.previous, args.fast, args.legacy)):
         missing = [p for p in DEFAULT_PROFILE_FILES if not (p.is_dir() and any(p.iterdir()) if p.suffix == ""
                                                              else p.is_file())]
         if missing:
             # RUN_NBT.cmd starts the viewer without a console: report in a window too.
-            text = ("Lipsesc fișiere necesare profilului implicit (firmware sau unelte):\n\n" +
+            text = ("Required default profile files are missing (firmware or tools):\n\n" +
                     "\n".join(str(p.relative_to(WORKSPACE)) for p in missing) +
-                    "\n\nVezi README.md, secțiunea „Firmware”.")
+                    "\n\nSee the Firmware section in README.md.")
             print(text, file=sys.stderr)
             try:
                 from tkinter import messagebox
@@ -554,13 +756,16 @@ def main():
                 pass
             raise SystemExit(2)
     root = tk.Tk()
-    app = LiveViewer(root, args.smoke_test, args.software, args.previous, args.fast, args.legacy)
+    app = LiveViewer(root, args.smoke_test, args.software, args.previous, args.fast, args.legacy, args.native)
+    app._instance_socket = instance
     try:
         root.mainloop()
     except KeyboardInterrupt:
         app.request_close("keyboard_interrupt")
         root.mainloop()
     finally:
+        if instance is not None:
+            instance.close()
         app.stop_event.set()
         if app.worker and app.worker.is_alive():
             app.worker.join(20)
@@ -574,4 +779,13 @@ def main():
 
 
 if __name__ == "__main__":
+    import struct
+    if struct.calcsize('P') == 4:
+        from webui import viewer_python
+        native_python = viewer_python()
+        if native_python != Path(sys.executable):
+            import subprocess
+            raise SystemExit(subprocess.call(
+                [str(native_python), str(Path(__file__).resolve()), *sys.argv[1:]],
+                creationflags=subprocess.CREATE_NO_WINDOW))
     main()

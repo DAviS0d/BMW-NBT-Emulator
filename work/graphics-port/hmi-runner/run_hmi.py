@@ -14,6 +14,8 @@ import struct
 import subprocess
 import sys
 import time
+import os
+import uuid
 from pathlib import Path
 
 sys.dont_write_bytecode = True
@@ -26,9 +28,58 @@ from stdio_socket_bridge import SocketRendererBridge
 from native_socket_bridge import NativeSocketRendererBridge
 
 
+
+def hypervisor_available():
+    """Check the active Windows hypervisor, including from WOW64 Python."""
+    import os
+    system = "Sysnative" if struct.calcsize("P") == 4 else "System32"
+    powershell = (Path(os.environ["SystemRoot"]) / system /
+                  "WindowsPowerShell/v1.0/powershell.exe")
+    result = subprocess.run(
+        [str(powershell), "-NoProfile", "-NonInteractive", "-Command",
+         "$ErrorActionPreference='Stop'; "
+         "(Get-CimInstance Win32_ComputerSystem).HypervisorPresent"],
+        capture_output=True, text=True, timeout=30,
+        creationflags=subprocess.CREATE_NO_WINDOW)
+    if result.returncode:
+        raise RuntimeError("Cannot check Windows hypervisor: " + result.stderr.strip())
+    return result.stdout.strip().lower() == "true"
+
+
 def virtual_apic_frequency(accelerator):
     if accelerator == 'tcg':
         return 1_000_000_000
+    # WHPX is 64-bit only; the viewer can be launched by 32-bit Python.
+    if struct.calcsize("P") == 4:
+        import os
+        powershell = (Path(os.environ["SystemRoot"]) / "Sysnative" /
+                      "WindowsPowerShell/v1.0/powershell.exe")
+        script = r'''$ErrorActionPreference = 'Stop'
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class NbtHypervisorClock {
+    [DllImport("WinHvPlatform.dll")]
+    public static extern int WHvGetCapability(int code, out ulong value,
+                                              uint size, out uint written);
+}
+'@
+[uint64]$frequency = 0
+[uint32]$written = 0
+$status = [NbtHypervisorClock]::WHvGetCapability(0x1005, [ref]$frequency, 8, [ref]$written)
+if ($status -ne 0 -or $written -ne 8 -or $frequency -eq 0) {
+    throw "Cannot read WHPX interrupt clock: status=$status bytes=$written frequency=$frequency"
+}
+$frequency
+'''
+        result = subprocess.run(
+            [str(powershell), "-NoProfile", "-NonInteractive", "-Command", script],
+            capture_output=True, text=True, timeout=30,
+            creationflags=subprocess.CREATE_NO_WINDOW)
+        if result.returncode:
+            raise RuntimeError("Cannot read WHPX interrupt clock via 64-bit helper: "
+                               + result.stderr.strip())
+        return int(result.stdout.strip())
     platform = ctypes.WinDLL('WinHvPlatform.dll')
     capability = platform.WHvGetCapability
     capability.argtypes = [ctypes.c_int, ctypes.c_void_p, ctypes.c_uint32,
@@ -175,6 +226,48 @@ def frame_details(ppm):
     return details
 
 
+def prepare_boot_image(boot, source, output, apic_hz):
+    """Reuse an identical validated envelope without rewriting 250 MiB per launch."""
+    started = time.monotonic()
+    reference = boot.ROOT / 'btld_00001275/Intel/fs/sda2/appimage.ifs'
+    def digest(path):
+        with path.open('rb') as stream:
+            return hashlib.file_digest(stream, 'sha256').hexdigest()
+    # Include original firmware, loader implementation, reference and all options.
+    identity = {'source': digest(source), 'loader': digest(Path(boot.__file__)),
+                'reference': digest(reference), 'apic_hz': apic_hz,
+                'memory_layout': 'nbt-map', 'startup_max_cpus': 1, 'version': 1}
+    key = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
+    cache = HERE / 'boot-cache'
+    cache.mkdir(exist_ok=True)
+    image_path, manifest = cache / (key + '.elf'), cache / (key + '.json')
+    try:
+        saved = json.loads(manifest.read_text(encoding='utf-8'))
+        hit = saved['identity'] == identity and digest(image_path) == saved['sha256']
+    except (OSError, ValueError, KeyError):
+        hit = False
+    if not hit:
+        temporary = cache / (key + '.' + uuid.uuid4().hex + '.tmp')
+        try:
+            image = boot.make_envelope(source, temporary, provide_memory=True,
+                                      memory_layout='nbt-map', startup_max_cpus=1,
+                                      qemu_clock_adapter=True, qemu_apic_hz=apic_hz)
+            saved = {'identity': identity, 'image': image, 'sha256': digest(temporary)}
+            temporary.replace(image_path)
+            temporary.write_text(json.dumps(saved), encoding='utf-8')
+            temporary.replace(manifest)
+        finally:
+            temporary.unlink(missing_ok=True)
+    # Each run owns its link, so cleanup cannot remove the persistent cache.
+    try:
+        os.link(image_path, output)
+    except OSError:
+        import shutil
+        shutil.copyfile(image_path, output)
+    return {**saved['image'], 'boot_cache_hit': hit,
+            'preparation_seconds': time.monotonic() - started}
+
+
 def run(source, seconds=30, transport="virtio", input_port=None, synchronize_clock=False,
         instruction_counting=True, stop_event=None, on_ready=None, capture_protocol=True,
         retain_boot_image=True, idle_sleep=False, virtio_port=0, input_virtio=False, icount_shift=6,
@@ -201,7 +294,7 @@ def run(source, seconds=30, transport="virtio", input_port=None, synchronize_clo
     if dma_transport and (not direct_renderer or not block_publication):
         raise ValueError('DMA transport requires the native renderer and block publication')
     source = Path(source).resolve()
-    qemu_program = QEMU.with_name('qemu-system-x86_64.exe') if accelerator == 'whpx' else QEMU
+    qemu_program = QEMU.with_name('qemu-system-x86_64.exe') if accelerator == 'whpx' or dma_transport else QEMU
     renderer = GRAPHICS / ('host/nbt-glhost-socket.exe' if direct_renderer else 'host/nbt-glhost.exe')
     if block_publication:
         renderer = GRAPHICS / 'host/nbt-glhost-publish.exe'
@@ -219,9 +312,7 @@ def run(source, seconds=30, transport="virtio", input_port=None, synchronize_clo
     envelope = folder / "original_qnx_hmi.elf"
     boot = load_boot_experiment()
     apic_hz = virtual_apic_frequency(accelerator)
-    image = boot.make_envelope(source, envelope, provide_memory=True,
-                               memory_layout="nbt-map", startup_max_cpus=1,
-                               qemu_clock_adapter=True, qemu_apic_hz=apic_hz)
+    image = prepare_boot_image(boot, source, envelope, apic_hz)
     serial_path = folder / "serial_com1.log"
     monitor_path = folder / "monitor.log"
     stderr_path = folder / "qemu-stderr.log"
@@ -271,6 +362,7 @@ def run(source, seconds=30, transport="virtio", input_port=None, synchronize_clo
                                   extra_env=renderer_environment)
     result = {"test": "ORIGINAL_NBT_HMI_RUNTIME_DIAGNOSTIC", "transport": transport,
               "source_ifs": str(source), "image": image, "run_directory": str(folder),
+              "owner_pid": os.getpid(),
               "qemu_command": command, "observation_seconds": seconds,
               "protocol_capture_enabled": bool(capture_protocol),
               "graphics_virtio_port": virtio_port if transport == 'virtio' else None,

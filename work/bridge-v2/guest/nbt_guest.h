@@ -117,6 +117,18 @@ int  nbt_input_send_ack(const uint8_t pkt[8], uint32_t key); /* used by keyboard
 
 /* keyboard.c */
 int  nbt_keyboard_packet(const uint8_t *pkt, uint32_t len); /* 0 ok, -1 failure */
+#ifdef NBT_EXPERIMENTAL_NATIVE
+int nbt_native_writable_page(uintptr_t address);
+int nbt_sports_init(void);
+int nbt_sports_update(unsigned channel0_percent, unsigned channel1_percent);
+void nbt_sports_tick(void);
+int nbt_native_devices_install(void);
+uint32_t nbt_native_devices_take_selection(void);
+void nbt_native_devices_request_selection(uint32_t identifier);
+#ifdef NBT_STANDALONE_NATIVE
+void nbt_native_mailbox_selection(uint32_t identifier);
+#endif
+#endif
 
 /* ------------------------------------------------------------------------- */
 /* link.c - per-thread state, lock, batching, record building                 */

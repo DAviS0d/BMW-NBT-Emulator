@@ -24,7 +24,7 @@ ROTARY_KEYS = (13, 14)
 class NativeInputSession:
     def __init__(self, info, stop_event, on_event=None, rotary_version=1,
                  button_hold_seconds=.075, button_release_gap_seconds=.075,
-                 extra_peripherals=(), doom_extension=False):
+                 extra_peripherals=(), doom_extension=False, native_extension=False):
         self.folder = Path(info['run_directory'])
         self.port = info['input_port']
         self.fast_transport = info.get('input_kind') == 'virtio'
@@ -33,6 +33,7 @@ class NativeInputSession:
         self.on_event = on_event or (lambda item: None)
         self.extra_peripherals = tuple(extra_peripherals)
         self.doom_extension = bool(doom_extension)
+        self.native_extension = bool(native_extension)
         self.rotary_version = rotary_version
         if not 0 <= button_hold_seconds <= 1 or not 0 <= button_release_gap_seconds <= 1:
             raise ValueError('Button timing must be between0 and1second')
@@ -59,6 +60,10 @@ class NativeInputSession:
         connection = None
         log_path = self.folder / 'controller-events.jsonl'
         log = log_path.open('w', encoding='utf-8')
+        mailbox = None
+        if self.native_extension:
+            from native_mailbox import NativeMailbox
+            mailbox = NativeMailbox(self.folder)
         def event(kind, **fields):
             item = {'kind': kind, 'seconds': round(time.monotonic()-started, 3), **fields}
             log.write(json.dumps(item) + '\n')
@@ -106,6 +111,8 @@ class NativeInputSession:
             control_file = self.folder / 'controller-actions.jsonl'
             control_file.touch()
             file_offset = 0
+            last_sports_send = 0
+            sports_sequence = 0
             while not self.stop_event.is_set():
                 now = time.monotonic()
                 if now-last_serial_check >= .1 and (not transport_ready or self.peripheral is None):
@@ -161,6 +168,16 @@ class NativeInputSession:
                     for packet in stream.feed(block):
                         parsed = MtpPacket.parse(packet)
                         event('native_packet_received', hex=packet.hex(' '))
+                        if self.native_extension and parsed.type == 0xfb and len(packet) == 8:
+                            identifier = int.from_bytes(packet[4:6], 'big')
+                            if identifier in (4, 12, 13, 14):
+                                event('native_device_selected', item_id=identifier,
+                                      source={4:'bluetooth',12:'android_auto',13:'carplay',14:'navigation'}[identifier])
+                            continue
+                        if self.native_extension and parsed.type == 0xf9 and len(packet) == 8:
+                            event('native_sports_ack', power_percent=packet[4], torque_percent=packet[5],
+                                  sequence=int.from_bytes(packet[6:8], 'big'))
+                            continue
                         if self.peripheral is None:
                             target = hmi_target_from_registry(packet)
                             if target is not None:
@@ -201,19 +218,46 @@ class NativeInputSession:
                     for reply in replies:
                         send(reply, 'native_property_response')
 
-                with control_file.open('rb') as source:
-                    source.seek(file_offset)
-                    for line in source:
-                        if not line.endswith(b'\n'):
-                            break
-                        file_offset += len(line)
-                        if line.strip():
-                            action = json.loads(line)['action']
-                            if action == 'stop':
-                                event('stop_requested_by_controller_client')
-                                self.stop_event.set()
-                                return
-                            self.actions.put(action)
+                if self.native_extension and self.ready and transport_ready and now - last_sports_send >= .1:
+                    state_path = Path(__file__).resolve().parents[1] / 'hmi-runner/vehicle-state.json'
+                    try:
+                        state = json.loads(state_path.read_text(encoding='utf-8'))
+                        power = min(100, max(0, round(float(state.get('power_kw', 0)) / 400 * 100)))
+                        torque = min(100, max(0, round(float(state.get('torque_nm', 0)) / 800 * 100)))
+                    except (OSError, ValueError, TypeError):
+                        power = torque = 0
+                    sports_sequence = (sports_sequence + 1) & 0xffff
+                    try:
+                        selected,applied=mailbox.exchange(power,torque)
+                        if selected in (4,12,13,14):
+                            event('native_device_selected', item_id=selected,
+                                  source={4:'bluetooth',12:'android_auto',13:'carplay',14:'navigation'}[selected])
+                        if applied is not None:
+                            event('native_sports_ack',power_percent=power,torque_percent=torque,sequence=applied,transport='owned_guest_mailbox')
+                    except OSError as error:
+                        event('native_mailbox_error',error=str(error))
+                        mailbox.close()
+                    last_sports_send = now
+
+                try:
+                    with control_file.open('rb') as source:
+                        source.seek(file_offset)
+                        control_lines = source.readlines()
+                except PermissionError:
+                    # A Windows writer can briefly deny sharing. Retry the same
+                    # offset; a transient file lock must not drop native input.
+                    control_lines = []
+                for line in control_lines:
+                    if not line.endswith(b'\n'):
+                        break
+                    file_offset += len(line)
+                    if line.strip():
+                        action = json.loads(line)['action']
+                        if action == 'stop':
+                            event('stop_requested_by_controller_client')
+                            self.stop_event.set()
+                            return
+                        self.actions.put(action)
                 if self.ready:
                     try:
                         action = self.actions.get_nowait()
@@ -223,6 +267,21 @@ class NativeInputSession:
                         if action == 'stop':
                             event('stop_requested_by_controller_client')
                             self.stop_event.set()
+                            continue
+                        if self.native_extension and action in KEYBOARD_KEYS:
+                            try:
+                                extension=json.loads((self.folder/'extension-state.json').read_text(encoding='utf-8'))
+                            except (OSError,ValueError):
+                                extension={}
+                            if extension.get('active'):
+                                event('extension_action',action=action)
+                                continue
+                        if self.native_extension and action.startswith('sports:'):
+                            _, power, torque = action.split(':')
+                            power, torque = int(power), int(torque)
+                            if not 0 <= power <= 100 or not 0 <= torque <= 100:
+                                raise ValueError('Sports percentages must be 0..100')
+                            mailbox.exchange(power,torque)
                             continue
                         # Explicit device bring-up commands for bounded protocol
                         # diagnostics. They use the same original MTP framing.
@@ -253,6 +312,8 @@ class NativeInputSession:
                             event('action_sent', action=action, backend='QNX_Doom_extension')
                             continue
                         if self.keyboard_hal and (action in KEYBOARD_KEYS or action.startswith('key:')):
+                            if self.native_extension and action == 'nav':
+                                event('native_device_selected', item_id=14, source='navigation')
                             if action in KEYBOARD_KEYS:
                                 key = KEYBOARD_KEYS[action]
                             else:
@@ -289,12 +350,14 @@ class NativeInputSession:
                         event('action_sent', action=action,
                               handle=self.peripheral.configuration.handle,
                               position=self.peripheral.position)
-                    except (ControlsNotReady, ValueError) as error:
+                    except (ControlsNotReady, ValueError, OSError) as error:
                         event('action_rejected', action=action, error=str(error))
         except (OSError, ValueError) as error:
             event('input_session_ended', error=repr(error))
         finally:
             self.connected = self.ready = False
+            if mailbox is not None:
+                mailbox.close()
             if connection:
                 connection.close()
             event('input_session_closed')

@@ -64,6 +64,16 @@ int nbt_input_send_ack(const uint8_t pkt[8], uint32_t key)
 static int frame_complete(void)
 {
     uint32_t len = g_need;
+#ifdef NBT_EXPERIMENTAL_NATIVE
+    if (g_frame[2] == 0xF8) {
+        if (len != 10 || g_frame[3] != 1) return -1;
+        unsigned ch0 = ((unsigned)g_frame[4] << 8) | g_frame[5];
+        unsigned ch1 = ((unsigned)g_frame[6] << 8) | g_frame[7];
+        int accepted = nbt_sports_update(ch0, ch1) == 0;
+        uint8_t ack[8] = {0, 8, 0xF9, 1, accepted ? (uint8_t)ch0 : 255, accepted ? (uint8_t)ch1 : 255, g_frame[8], g_frame[9]};
+        return nbt_input_send_ack(ack, 0);
+    }
+#endif
     if (g_frame[2] == 0xFE) return nbt_keyboard_packet(g_frame, len);
     if (g_frame[2] == 0x02 && len < 12) {
         NBT_LOG("NBT_PORT2_MTP_HEADER_REJECTED length=%u\n", len);
@@ -162,6 +172,13 @@ static void *worker(void *arg)
     diag("BIDIRECTIONAL_READY_PORT2_50123", 2, 0);
 
     for (uint32_t iter = 1; !g_stop; iter++) {
+#ifdef NBT_EXPERIMENTAL_NATIVE
+        uint32_t selected = nbt_native_devices_take_selection();
+        if (selected) {
+            uint8_t event[8] = {0, 8, 0xFB, 1, (uint8_t)(selected >> 8), (uint8_t)selected, 0, 0};
+            if (nbt_input_send_ack(event, 0) != 0) goto out;
+        }
+#endif
         int progress = 0;
 
         /* host -> native */

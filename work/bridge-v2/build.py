@@ -51,6 +51,17 @@ def build_guest():
     return out
 
 
+def build_native_guest():
+    """Build the isolated, opt-in original-HMI extension profile."""
+    gdir = os.path.join(ROOT, 'guest')
+    out = os.path.join(gdir, 'libnbtgl-native.so')
+    sources = GUEST_SOURCES + ['native_patch.c', 'native_sports.c', 'native_devices.c']
+    run([ZIG, 'cc', *GUEST_FLAGS, '-DNBT_EXPERIMENTAL_NATIVE=1', '-o', out,
+         *[os.path.join(gdir, name) for name in sources]])
+    print(f'native guest {out}\n  sha256 {sha256(out)}', flush=True)
+    return out
+
+
 def host_link_inputs():
     lib = os.path.join(ANGLE, "lib")
     return [
@@ -89,6 +100,9 @@ def build_tests():
 
 def main():
     what = sys.argv[1] if len(sys.argv) > 1 else "all"
+    if what == 'native-guest':
+        build_native_guest()
+        return
     if what in ("guest", "all"):
         build_guest()
     if what in ("host", "all"):

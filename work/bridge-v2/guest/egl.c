@@ -111,6 +111,9 @@ NBT_API EGLBoolean eglQuerySurface(EGLDisplay dpy, EGLSurface surf, EGLint attr,
 NBT_API EGLBoolean eglSwapBuffers(EGLDisplay dpy, EGLSurface surf)
 {
     (void)dpy; (void)surf;
+#ifdef NBT_EXPERIMENTAL_NATIVE
+    nbt_sports_tick();
+#endif
     nbt_send_simple(5, 0);
     uint32_t n = __sync_add_and_fetch(&g_frames, 1u);
     if (n <= 3 || n % 30 == 0) {
