@@ -65,7 +65,7 @@ The emulator expects the firmware-derived files **at exactly these paths**. If a
 
 | File / folder | What it is | Required |
 |---|---|---|
-| `work/bridge-v2/ifs/walthread_keyboard_dma_v2.ifs` | emulation IFS image (NBT firmware + the emulator's adapters) | yes |
+| `work/bridge-v2/ifs/walthread_keyboard_dma_v2_prio.ifs` | emulation IFS image (NBT firmware + the emulator's adapters) | yes |
 | `outputs/NBT_emulation_research/btld_00001275/Intel/fs/sda2/appimage.ifs` | original `appimage.ifs`, used by the loader as reference | yes |
 | `work/graphics-port/host/shader-cache/` | GLSL shaders recovered from the firmware's shader cache | yes |
 | `work/graphics-port/syset-native/hmi_native_coding_schema.json` | coding descriptors from `HmiMain3D` (startup screen) | no |

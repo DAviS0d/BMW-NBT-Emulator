@@ -24,7 +24,9 @@ HERE = Path(__file__).resolve().parent
 WORKSPACE = HERE.parents[2]
 # Default profile: the clean-room GLES bridge (work/bridge-v2, docs/RAPORT_CLEANROOM.md),
 # i.e. the legacy DMA image with only libnbtgl.so replaced, plus its renderer.
-DEFAULT_IFS = WORKSPACE / "work/bridge-v2/ifs/walthread_keyboard_dma_v2.ifs"
+# The _prio image also starts the MTP bridge at priority 13, so the keyboard is
+# ready at ~14 s instead of ~98 s (work/bridge-v2/build_ifs_prio.py).
+DEFAULT_IFS = WORKSPACE / "work/bridge-v2/ifs/walthread_keyboard_dma_v2_prio.ifs"
 DEFAULT_RENDERER = WORKSPACE / "work/bridge-v2/host/nbt-glhost-v2.exe"
 # --legacy / --fast: the previous default DMA image (qemu-mhi2-derived bridge).
 LEGACY_IFS = WORKSPACE / "work/graphics-port/guest/walthread_keyboard_dma_navigation_hmi_probe_app12_trace_quiet.ifs"
