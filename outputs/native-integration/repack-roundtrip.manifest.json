@@ -1,0 +1,39 @@
+{
+  "type": "EXPERIMENTAL_REPACKED_QNX_IFS",
+  "source": "G:\\BMW-NBT-Emulator\\work\\bridge-v2\\ifs\\walthread_keyboard_dma_v2_prio.ifs",
+  "source_sha256": "3e8a20915913e31427ac91b1f5184bc2f51acbdbc4ea7d127332a0f7773cb48b",
+  "output": "G:\\BMW-NBT-Emulator\\outputs\\native-integration\\repack-roundtrip.ifs",
+  "output_sha256": "0463cb847abda430acada6fb4fa5f9ff3b14836aa46fab46526bf7e0723d19e8",
+  "source_size": 261873732,
+  "output_size": 261997472,
+  "startup_size": 105816,
+  "startup_instructions_preserved": true,
+  "startup_checksum_valid": true,
+  "imagefs_checksum_valid": true,
+  "imagefs_header_offset": 105816,
+  "imagefs_size": 261891652,
+  "stored_size": 261997468,
+  "ram_size": 261997468,
+  "directory_offset": 261783520,
+  "entry_count": 1051,
+  "files": [
+    {
+      "path": "opt/hmi/data/ro/HmiGen_NavigationRemoteService.xml",
+      "operation": "replace",
+      "host_source": "G:\\BMW-NBT-Emulator\\outputs\\native-integration\\artifacts\\opt\\hmi\\data\\ro\\HmiGen_NavigationRemoteService.xml",
+      "size": 11576,
+      "image_offset": 261771944,
+      "absolute_offset": 261877760,
+      "sha256": "6519cb3cdc3cda3bf7a3ef8eed6a8c56bc31c6ebb09d6da273879b085b916459",
+      "original_size": 11576,
+      "original_sha256": "6519cb3cdc3cda3bf7a3ef8eed6a8c56bc31c6ebb09d6da273879b085b916459"
+    }
+  ],
+  "added_directories": [],
+  "trailing_bytes_preserved": 4,
+  "references": [
+    "https://raw.githubusercontent.com/vocho/openqnx/master/trunk/services/system/public/sys/image.h",
+    "https://qnx.com/developers/docs/6.4.0/neutrino/building/load_process.html"
+  ],
+  "runtime_boot_verified": false
+}

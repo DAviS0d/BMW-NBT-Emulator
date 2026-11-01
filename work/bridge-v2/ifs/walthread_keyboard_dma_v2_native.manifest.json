@@ -1,0 +1,62 @@
+{
+  "type": "EXPERIMENTAL_REPACKED_QNX_IFS",
+  "source": "G:\\BMW-NBT-Emulator\\work\\bridge-v2\\ifs\\walthread_keyboard_dma_v2_prio.ifs",
+  "source_sha256": "3e8a20915913e31427ac91b1f5184bc2f51acbdbc4ea7d127332a0f7773cb48b",
+  "output": "G:\\BMW-NBT-Emulator\\outputs\\native-integration\\build-1793389702440439700\\native.ifs",
+  "output_sha256": "02c0b76e2fe9c1f856fee432ce436f8c0852e462f628a7647713b8cee203fdc1",
+  "source_size": 261873732,
+  "output_size": 262041756,
+  "startup_size": 105816,
+  "startup_instructions_preserved": true,
+  "startup_checksum_valid": true,
+  "imagefs_checksum_valid": true,
+  "imagefs_header_offset": 105816,
+  "imagefs_size": 261935936,
+  "stored_size": 262041752,
+  "ram_size": 262041752,
+  "directory_offset": 261827744,
+  "entry_count": 1052,
+  "files": [
+    {
+      "path": "boot/lib/libnbtnative.so",
+      "operation": "add",
+      "host_source": "G:\\BMW-NBT-Emulator\\outputs\\native-integration\\build-1793389702440439700\\libnbtnative.so",
+      "size": 42624,
+      "image_offset": 261771944,
+      "absolute_offset": 261877760,
+      "sha256": "4a2c9b65b6bd67d9aa9e02a50114264ffa5a714f35142b1af642c3bb953bf052",
+      "original_size": null,
+      "original_sha256": null
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmimultimedia/hmimultimedia.pba",
+      "operation": "replace",
+      "host_source": "G:\\BMW-NBT-Emulator\\outputs\\native-integration\\build-1793389702440439700\\hmimultimedia.pba",
+      "size": 7164,
+      "image_offset": 261817000,
+      "absolute_offset": 261922816,
+      "sha256": "34c495e8e884a12d50c9737967dda352ebc013f8cdee2e98080cab8294c99ffc",
+      "original_size": 7110,
+      "original_sha256": "e81598826c69debc86aa35f24ac7bd707b8ea66b24c1ccb8955305a9b97c3e70"
+    },
+    {
+      "path": "proc/boot/.startupscript",
+      "operation": "replace",
+      "host_source": "G:\\BMW-NBT-Emulator\\outputs\\native-integration\\build-1793389702440439700\\startupscript.bin",
+      "size": 2552,
+      "image_offset": 261825192,
+      "absolute_offset": 261931008,
+      "sha256": "0bda61752f2aa1089f9d8f017661c96ef1e592faf705ef1f40118e8f0aebb1b0",
+      "original_size": 2524,
+      "original_sha256": "7ca5e798b5aefd5062c02b721cae25bd563a65f43e2f4d76b5be298e5deec7f4"
+    }
+  ],
+  "added_directories": [],
+  "trailing_bytes_preserved": 4,
+  "references": [
+    "https://raw.githubusercontent.com/vocho/openqnx/master/trunk/services/system/public/sys/image.h",
+    "https://qnx.com/developers/docs/6.4.0/neutrino/building/load_process.html"
+  ],
+  "runtime_boot_verified": false,
+  "original_gles_bridge_preserved": true
+}

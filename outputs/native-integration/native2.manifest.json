@@ -1,0 +1,50 @@
+{
+  "type": "EXPERIMENTAL_REPACKED_QNX_IFS",
+  "source": "G:\\BMW-NBT-Emulator\\work\\bridge-v2\\ifs\\walthread_keyboard_dma_v2_prio.ifs",
+  "source_sha256": "3e8a20915913e31427ac91b1f5184bc2f51acbdbc4ea7d127332a0f7773cb48b",
+  "output": "G:\\BMW-NBT-Emulator\\outputs\\native-integration\\native2.ifs",
+  "output_sha256": "4eed8be3df8a64598f4e1bf0a1d5de321db6c791758afdadb737f1d713c8bec9",
+  "source_size": 261873732,
+  "output_size": 262218340,
+  "startup_size": 105816,
+  "startup_instructions_preserved": true,
+  "startup_checksum_valid": true,
+  "imagefs_checksum_valid": true,
+  "imagefs_header_offset": 105816,
+  "imagefs_size": 262112520,
+  "stored_size": 262218336,
+  "ram_size": 262218336,
+  "directory_offset": 262004388,
+  "entry_count": 1051,
+  "files": [
+    {
+      "path": "boot/lib/libnbtgl.so",
+      "operation": "replace",
+      "host_source": "G:\\BMW-NBT-Emulator\\work\\bridge-v2\\guest\\libnbtgl-native.so",
+      "size": 223244,
+      "image_offset": 261771944,
+      "absolute_offset": 261877760,
+      "sha256": "e5298b6665ec2178dcd74a6fce82ad7aedf8651cd0c95f02fa7474c020576a99",
+      "original_size": 202472,
+      "original_sha256": "aa785fdfa3b22c96b7131ae8801f60984db81e902975bd00e896ae642f0182b2"
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmimultimedia/hmimultimedia.pba",
+      "operation": "replace",
+      "host_source": "G:\\BMW-NBT-Emulator\\outputs\\native-integration\\experimental-resources\\hmimultimedia.pba",
+      "size": 7164,
+      "image_offset": 261997224,
+      "absolute_offset": 262103040,
+      "sha256": "34c495e8e884a12d50c9737967dda352ebc013f8cdee2e98080cab8294c99ffc",
+      "original_size": 7110,
+      "original_sha256": "e81598826c69debc86aa35f24ac7bd707b8ea66b24c1ccb8955305a9b97c3e70"
+    }
+  ],
+  "added_directories": [],
+  "trailing_bytes_preserved": 4,
+  "references": [
+    "https://raw.githubusercontent.com/vocho/openqnx/master/trunk/services/system/public/sys/image.h",
+    "https://qnx.com/developers/docs/6.4.0/neutrino/building/load_process.html"
+  ],
+  "runtime_boot_verified": false
+}

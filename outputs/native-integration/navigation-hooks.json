@@ -1,0 +1,1289 @@
+{
+  "schema_version": 1,
+  "scope": "Static, read-only navigation integration investigation; no native service execution, patches, or web substitute.",
+  "artifacts": [
+    {
+      "path": "G:\\BMW-NBT-Emulator\\outputs\\native-integration\\artifacts\\boot\\bin\\HmiMain3D",
+      "sha256": "554b67d4d6317cfb1715d544874fae8ddd2c975be503c9e2514e2dc2f3a0d693",
+      "size": 25707140
+    },
+    {
+      "path": "G:\\BMW-NBT-Emulator\\outputs\\native-integration\\artifacts\\opt\\hmi\\data\\ro\\HmiGen_NavigationRemoteService.xml",
+      "sha256": "6519cb3cdc3cda3bf7a3ef8eed6a8c56bc31c6ebb09d6da273879b085b916459",
+      "size": 11576
+    },
+    {
+      "path": "G:\\BMW-NBT-Emulator\\outputs\\native-integration\\ifs-inventory.json",
+      "source_sha256": "3e8a20915913e31427ac91b1f5184bc2f51acbdbc4ea7d127332a0f7773cb48b",
+      "inventory_entry_count": 1051
+    }
+  ],
+  "tooling": {
+    "method": "Python standard-library XML parser, ELF32 program/section headers, dynamic dependencies, printable-string locations, original IFS inventory.",
+    "rea_evidence": null,
+    "limitations": "No REA engine/session available (parent verified no Ghidra/Hopper/IDA). These are ordinary static-tool observations, not REA Evidence or executed behavior. No call signatures, message layouts, service IDs or callback contracts recovered."
+  },
+  "xml_schema": {
+    "root": "pluginApps",
+    "plugin_apps": [
+      {
+        "applicationType": "ServiceMenu",
+        "textModel": "510"
+      }
+    ],
+    "tag_counts": {
+      "pluginApps": 1,
+      "pluginApp": 1,
+      "actions": 1,
+      "hmiAction": 7,
+      "raAction": 8,
+      "models": 26,
+      "formatDataModel": 25,
+      "textIdModel": 46,
+      "raListModel": 7,
+      "raDataModel": 2,
+      "hmiStates": 1,
+      "hmiState": 16,
+      "components": 16,
+      "button": 12,
+      "properties": 5,
+      "property": 5,
+      "label": 25,
+      "list": 9,
+      "locationInput": 1,
+      "separator": 4,
+      "input": 1
+    },
+    "actions": [
+      {
+        "kind": "hmiAction",
+        "id": "3",
+        "target": "4"
+      },
+      {
+        "kind": "hmiAction",
+        "id": "6",
+        "target": "7"
+      },
+      {
+        "kind": "hmiAction",
+        "id": "23",
+        "target": "24"
+      },
+      {
+        "kind": "hmiAction",
+        "id": "58",
+        "target": "59"
+      },
+      {
+        "kind": "hmiAction",
+        "id": "65",
+        "target": "66"
+      },
+      {
+        "kind": "hmiAction",
+        "id": "96",
+        "target": "97"
+      },
+      {
+        "kind": "hmiAction",
+        "id": "104",
+        "target": "105"
+      },
+      {
+        "kind": "raAction",
+        "id": "125"
+      },
+      {
+        "kind": "raAction",
+        "actionType": "spellWord",
+        "id": "107"
+      },
+      {
+        "kind": "raAction",
+        "actionType": "spellWord",
+        "id": "110"
+      },
+      {
+        "kind": "raAction",
+        "actionType": "spellWord",
+        "id": "113"
+      },
+      {
+        "kind": "raAction",
+        "actionType": "spellWord",
+        "id": "115"
+      },
+      {
+        "kind": "raAction",
+        "actionType": "spellWord",
+        "id": "119"
+      },
+      {
+        "kind": "raAction",
+        "id": "122"
+      },
+      {
+        "kind": "raAction",
+        "id": "174"
+      }
+    ],
+    "state_ids": [
+      "1",
+      "4",
+      "7",
+      "24",
+      "59",
+      "66",
+      "97",
+      "127",
+      "131",
+      "135",
+      "142",
+      "148",
+      "155",
+      "159",
+      "163",
+      "170"
+    ],
+    "literal_texts": [
+      {
+        "kind": "label",
+        "id": "98",
+        "model": "99",
+        "text": "Map database:"
+      },
+      {
+        "kind": "label",
+        "id": "100",
+        "model": "101",
+        "text": "Air pictures:"
+      },
+      {
+        "kind": "hmiState",
+        "id": "170",
+        "text": "Speller"
+      }
+    ],
+    "map_or_media_element_count": 0,
+    "observation": "The only pluginApp declares applicationType=ServiceMenu. The XML describes HMI state transitions, remote actions, diagnostic text/list models, location input and a speller. It does not declare a map/tile canvas, texture upload, network endpoint, routing engine, or OSM source.",
+    "boundary": "This resource describes one service menu; absence here does not prove no such capability elsewhere in HmiMain3D."
+  },
+  "hmi_binary": {
+    "format": "ELF32 little-endian i386",
+    "load_segments": [
+      {
+        "file_offset": "0x0",
+        "file_size": 25220134,
+        "virtual_address": "0x8048000"
+      },
+      {
+        "file_offset": "0x180d428",
+        "file_size": 428916,
+        "virtual_address": "0x9856428"
+      }
+    ],
+    "dynamic_symbol_count": 1223,
+    "defined_dynamic_symbol_count": 467,
+    "needed_libraries": [
+      "libKD.so",
+      "libnvgpu.so",
+      "libnvrmsys.so",
+      "libnvsys.so",
+      "libnvblt.so",
+      "libEGL.so",
+      "libGLESv2_CM.so",
+      "libwal_nvidia.so",
+      "libheartbeat.so.3",
+      "libsys_colibry.so.4",
+      "libBMWOTFapi.so.3",
+      "libAppFramework.A.so",
+      "libfribidi.so",
+      "libDevIL.so",
+      "libiwnn.so.1",
+      "libcpp-ne.so.4",
+      "libCoreFramework.A.so",
+      "libc.so.3",
+      "libm.so.2",
+      "libsocket.so.3",
+      "libbacktrace.so.1"
+    ],
+    "proxy_string_anchors": [
+      {
+        "text": "CPxyMapControl",
+        "file_offset": 23281028,
+        "file_offset_hex": "0x1633d84",
+        "virtual_address": "0x967bd84"
+      },
+      {
+        "text": "CPxyNavigation",
+        "file_offset": 23305061,
+        "file_offset_hex": "0x1639b65",
+        "virtual_address": "0x9681b65"
+      },
+      {
+        "text": "CPxyNavigationInfo",
+        "file_offset": 23343883,
+        "file_offset_hex": "0x164330b",
+        "virtual_address": "0x968b30b"
+      }
+    ],
+    "candidate_navigation_strings": [
+      {
+        "text": "Navigation Quick test Service Menu",
+        "file_offset": 21006601,
+        "file_offset_hex": "0x1408909",
+        "virtual_address": "0x9450909"
+      },
+      {
+        "text": "[CNaviBonCrashService] removeKml",
+        "file_offset": 21926503,
+        "file_offset_hex": "0x14e9267",
+        "virtual_address": "0x9531267"
+      },
+      {
+        "text": "[CNaviBonCrashService] Writing %u bytes to stream.",
+        "file_offset": 21926536,
+        "file_offset_hex": "0x14e9288",
+        "virtual_address": "0x9531288"
+      },
+      {
+        "text": "[CNaviBonCrashService] onBrowserCrash",
+        "file_offset": 21926587,
+        "file_offset_hex": "0x14e92bb",
+        "virtual_address": "0x95312bb"
+      },
+      {
+        "text": "[CNaviBonCrashService] Removed sessionID= %u",
+        "file_offset": 21926625,
+        "file_offset_hex": "0x14e92e1",
+        "virtual_address": "0x95312e1"
+      },
+      {
+        "text": "[CNaviBonCrashService] onBrowserInstances",
+        "file_offset": 21926670,
+        "file_offset_hex": "0x14e930e",
+        "virtual_address": "0x953130e"
+      },
+      {
+        "text": "[CNaviBonCrashService] Removed Browser sessionID= %u",
+        "file_offset": 21926712,
+        "file_offset_hex": "0x14e9338",
+        "virtual_address": "0x9531338"
+      },
+      {
+        "text": "[CNaviBonCrashService] destructor",
+        "file_offset": 21926765,
+        "file_offset_hex": "0x14e936d",
+        "virtual_address": "0x953136d"
+      },
+      {
+        "text": "[CNaviBonCrashService] constructor",
+        "file_offset": 21926799,
+        "file_offset_hex": "0x14e938f",
+        "virtual_address": "0x953138f"
+      },
+      {
+        "text": "../../../../../hmi2012/app/hminavi/CNaviBonCrashService.cpp",
+        "file_offset": 21926834,
+        "file_offset_hex": "0x14e93b2",
+        "virtual_address": "0x95313b2"
+      },
+      {
+        "text": "HmiRemoting_CNaviBonCrashService_CNaviBonCrashService",
+        "file_offset": 21926894,
+        "file_offset_hex": "0x14e93ee",
+        "virtual_address": "0x95313ee"
+      },
+      {
+        "text": "HmiRemoting_CNaviBonCrashService_CNaviBonCrashServiceD",
+        "file_offset": 21926948,
+        "file_offset_hex": "0x14e9424",
+        "virtual_address": "0x9531424"
+      },
+      {
+        "text": "HmiRemoting_CNaviBonCrashService_removeKml",
+        "file_offset": 21927003,
+        "file_offset_hex": "0x14e945b",
+        "virtual_address": "0x953145b"
+      },
+      {
+        "text": "HmiRemoting_CNaviBonCrashService_onKMLOverlaySummary",
+        "file_offset": 21927046,
+        "file_offset_hex": "0x14e9486",
+        "virtual_address": "0x9531486"
+      },
+      {
+        "text": "HmiRemoting_CNaviBonCrashService_onBrowserInstances",
+        "file_offset": 21927099,
+        "file_offset_hex": "0x14e94bb",
+        "virtual_address": "0x95314bb"
+      },
+      {
+        "text": "HmiRemoting_CNaviBonCrashService_onBrowserCrash",
+        "file_offset": 21927151,
+        "file_offset_hex": "0x14e94ef",
+        "virtual_address": "0x95314ef"
+      },
+      {
+        "text": "[CNaviBonCrashService] onKMLOverlaySummary",
+        "file_offset": 21927199,
+        "file_offset_hex": "0x14e951f",
+        "virtual_address": "0x953151f"
+      },
+      {
+        "text": "[CNaviBonCrashService] Overlay summary array size= %u",
+        "file_offset": 21927242,
+        "file_offset_hex": "0x14e954a",
+        "virtual_address": "0x953154a"
+      },
+      {
+        "text": "[CNaviBonCrashService] Browser sessionID= %u",
+        "file_offset": 21927296,
+        "file_offset_hex": "0x14e9580",
+        "virtual_address": "0x9531580"
+      },
+      {
+        "text": "20CNaviBonCrashService",
+        "file_offset": 21927360,
+        "file_offset_hex": "0x14e95c0",
+        "virtual_address": "0x95315c0"
+      },
+      {
+        "text": "CNaviBonCrashService",
+        "file_offset": 21927396,
+        "file_offset_hex": "0x14e95e4",
+        "virtual_address": "0x95315e4"
+      },
+      {
+        "text": "%s/HmiGen_NavigationRemoteService.xml",
+        "file_offset": 22805689,
+        "file_offset_hex": "0x15bfcb9",
+        "virtual_address": "0x9607cb9"
+      },
+      {
+        "text": "Navigation Service",
+        "file_offset": 22805727,
+        "file_offset_hex": "0x15bfcdf",
+        "virtual_address": "0x9607cdf"
+      },
+      {
+        "text": "Getting navigation proxy for service menu",
+        "file_offset": 22806130,
+        "file_offset_hex": "0x15bfe72",
+        "virtual_address": "0x9607e72"
+      },
+      {
+        "text": "CPxyMapControl",
+        "file_offset": 23281028,
+        "file_offset_hex": "0x1633d84",
+        "virtual_address": "0x967bd84"
+      },
+      {
+        "text": "N14CPxyMapControl14CMC_KML_ActionE",
+        "file_offset": 23286588,
+        "file_offset_hex": "0x163533c",
+        "virtual_address": "0x967d33c"
+      },
+      {
+        "text": "N14CPxyMapControl22CMC_KML_OverlaySummaryE",
+        "file_offset": 23286636,
+        "file_offset_hex": "0x163536c",
+        "virtual_address": "0x967d36c"
+      },
+      {
+        "text": "CPxyNavigation",
+        "file_offset": 23305061,
+        "file_offset_hex": "0x1639b65",
+        "virtual_address": "0x9681b65"
+      },
+      {
+        "text": "N14CPxyNavigation30CService_SetPositionByLocationE",
+        "file_offset": 23335560,
+        "file_offset_hex": "0x1641288",
+        "virtual_address": "0x9689288"
+      },
+      {
+        "text": "N14CPxyNavigation20CService_SensorData2E",
+        "file_offset": 23335732,
+        "file_offset_hex": "0x1641334",
+        "virtual_address": "0x9689334"
+      },
+      {
+        "text": "N14CPxyNavigation19CService_SensorDataE",
+        "file_offset": 23335968,
+        "file_offset_hex": "0x1641420",
+        "virtual_address": "0x9689420"
+      },
+      {
+        "text": "CPxyNavigationInfo",
+        "file_offset": 23343883,
+        "file_offset_hex": "0x164330b",
+        "virtual_address": "0x968b30b"
+      },
+      {
+        "text": "Navigation Service Menu",
+        "file_offset": 23542274,
+        "file_offset_hex": "0x1673a02",
+        "virtual_address": "0x96bba02"
+      }
+    ],
+    "explicit_osm_term_counts": {
+      "openstreetmap": 0,
+      "tile.openstreetmap.org": 0,
+      "nominatim": 0,
+      "osrm": 0
+    },
+    "observation": "The binary contains navigation/map-control proxy type names and service-menu strings; KML/overlay and position/sensor type names are additional candidates. RTTI/diagnostic names are not an exported service API or proof that a backend is running."
+  },
+  "relevant_image_resources": [
+    {
+      "path": "opt/hmi/data/ro/HmiGen_FilesRemoteService.xml",
+      "size": 558,
+      "absolute_offset": 178864128
+    },
+    {
+      "path": "opt/hmi/data/ro/HmiGen_GracenoteRemoteService.xml",
+      "size": 1034,
+      "absolute_offset": 178868224
+    },
+    {
+      "path": "opt/hmi/data/ro/HmiGen_NavigationRemoteService.xml",
+      "size": 11576,
+      "absolute_offset": 178872320
+    },
+    {
+      "path": "opt/hmi/data/ro/HmiGen_NaviQuickTest.xml",
+      "size": 1146,
+      "absolute_offset": 178884608
+    },
+    {
+      "path": "opt/hmi/data/ro/HmiGen_PhoneRemoteService.xml",
+      "size": 2676,
+      "absolute_offset": 178888704
+    },
+    {
+      "path": "opt/hmi/data/ro/HmiGen_TVRemoteService.xml",
+      "size": 4256,
+      "absolute_offset": 178892800
+    },
+    {
+      "path": "opt/hmi/data/ro/common/script/hmi_consumptionAverage.lua",
+      "size": 2661,
+      "absolute_offset": 243523584
+    },
+    {
+      "path": "opt/hmi/data/ro/common/script/hmi_listSF_JNav_RouteCriteria2D.lua",
+      "size": 743,
+      "absolute_offset": 243687424
+    },
+    {
+      "path": "opt/hmi/data/ro/common/script/hmi_ListSF_JNav_RouteInfo2D.lua",
+      "size": 1018,
+      "absolute_offset": 243691520
+    },
+    {
+      "path": "opt/hmi/data/ro/common/script/hmi_mapScaleMenu2D.lua",
+      "size": 1378,
+      "absolute_offset": 243703808
+    },
+    {
+      "path": "opt/hmi/data/ro/common/script/hmi_mapScaleRotation.lua",
+      "size": 722,
+      "absolute_offset": 243707904
+    },
+    {
+      "path": "opt/hmi/data/ro/common/script/hmi_nav_routeinfo.lua",
+      "size": 745,
+      "absolute_offset": 243736576
+    },
+    {
+      "path": "opt/hmi/data/ro/common/script/hmi_SfSimpleMap.lua",
+      "size": 7383,
+      "absolute_offset": 243822592
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmihome/hmicoremapupdate.pba",
+      "size": 10147,
+      "absolute_offset": 245714944
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmihome/hmicoresplitscreenhighwaymap.pba",
+      "size": 415,
+      "absolute_offset": 245764096
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmihome/hmicoresplitscreenmapnorth.pba",
+      "size": 424,
+      "absolute_offset": 245772288
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmihome/hmicoresplitscreensimplemapsingle.pba",
+      "size": 1205,
+      "absolute_offset": 245792768
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmihome/hmicoresplitscreensimplemapstreetlist.pba",
+      "size": 615,
+      "absolute_offset": 245796864
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmihome/hminavicityhighwaymappopup.pba",
+      "size": 310,
+      "absolute_offset": 245821440
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmihome/hminaviguidingpopup.pba",
+      "size": 295,
+      "absolute_offset": 245825536
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmihome/hminavistatuslabels.pba",
+      "size": 1795,
+      "absolute_offset": 245829632
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmihome/hminavivicspopup.pba",
+      "size": 749,
+      "absolute_offset": 245833728
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmijnavi/hmijnavi.pba",
+      "size": 148185,
+      "absolute_offset": 245886976
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmijnavi/hmijnavi3dangleset.pba",
+      "size": 1015,
+      "absolute_offset": 246038528
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmijnavi/hmijnaviadditionaluserinformation.pba",
+      "size": 723,
+      "absolute_offset": 246042624
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmijnavi/hmijnavichargingonlinesearch.pba",
+      "size": 737,
+      "absolute_offset": 246046720
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmijnavi/hmijnavidisplaysettings.pba",
+      "size": 731,
+      "absolute_offset": 246050816
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmijnavi/hmijnavifontsizeonmap.pba",
+      "size": 890,
+      "absolute_offset": 246054912
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmijnavi/hmijnavigpsinformation.pba",
+      "size": 1364,
+      "absolute_offset": 246059008
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmijnavi/hmijnavihybridroutepopup.pba",
+      "size": 1292,
+      "absolute_offset": 246063104
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmijnavi/hmijnavimap.pba",
+      "size": 31200,
+      "absolute_offset": 246067200
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmijnavi/hmijnavimapcolor.pba",
+      "size": 2047,
+      "absolute_offset": 246099968
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmijnavi/hmijnavimapversion.pba",
+      "size": 970,
+      "absolute_offset": 246104064
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmijnavi/hmijnavionlinechargingsearchtriplocation.pba",
+      "size": 658,
+      "absolute_offset": 246108160
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmijnavi/hmijnavipopupguidancancehint.pba",
+      "size": 394,
+      "absolute_offset": 246112256
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmijnavi/hmijnavisetpositionanddirection.pba",
+      "size": 1020,
+      "absolute_offset": 246116352
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmijnavi/hmijnavivirtualtable.pba",
+      "size": 762,
+      "absolute_offset": 246120448
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hmijnavi/hmijnavivoiceguidancesettings.pba",
+      "size": 723,
+      "absolute_offset": 246124544
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hminavi/hminavi.pba",
+      "size": 89852,
+      "absolute_offset": 246288384
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hminavi/hminavilaptimer.pba",
+      "size": 25192,
+      "absolute_offset": 246378496
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hminavi/hminavipoi.pba",
+      "size": 24784,
+      "absolute_offset": 246407168
+    },
+    {
+      "path": "opt/hmi/data/ro/app/hminavi/hminavivirtualtable.pba",
+      "size": 1262,
+      "absolute_offset": 246435840
+    },
+    {
+      "path": "opt/sys/etc/devc-navsens.cfg",
+      "size": 1928,
+      "absolute_offset": 258228224
+    },
+    {
+      "path": "opt/sys/etc/NBT_AdjBlock_Jacinto.txt",
+      "size": 33769,
+      "absolute_offset": 258244608
+    }
+  ],
+  "resource_observations": [
+    {
+      "path": "opt/hmi/data/ro/common/script/hmi_SfSimpleMap.lua",
+      "size": 7383,
+      "sha256": "81d7c2939d42e47224897cd65d9a1473b562e354d81c4f8156f2ad3e33b85250",
+      "observation": "View layout code positions existing road-sign/icon model columns, selects tollway backgrounds, and does not define tile loading or map drawing.",
+      "selected_lines": [
+        {
+          "line": 1,
+          "text": "function hmi_SfSimpleMap_updateIconPositions(view, model)"
+        },
+        {
+          "line": 16,
+          "text": "isTollWay = hmi_getModelValue( model, row, 27 );"
+        },
+        {
+          "line": 20,
+          "text": "bgimage = hmi_getViewPropertyAsVariant(view, hmi_getPropertyName(\"BackgroundImageTollway\"))"
+        },
+        {
+          "line": 21,
+          "text": "hmi_replaceViewProperty( view, hmi_getPropertyName(\"BackgroundImage\"), bgimage)"
+        },
+        {
+          "line": 23,
+          "text": "bgimage = hmi_getViewPropertyAsVariant(view, hmi_getPropertyName(\"BackgroundImageNormal\"))"
+        },
+        {
+          "line": 24,
+          "text": "hmi_replaceViewProperty( view, hmi_getPropertyName(\"BackgroundImage\"), bgimage)"
+        },
+        {
+          "line": 33,
+          "text": "icon = hmi_getModelValue(model, row, icon1Col + iconIdx)"
+        },
+        {
+          "line": 62,
+          "text": "iconColumnMode = hmi_getModelValue( model, row, 28 )"
+        },
+        {
+          "line": 95,
+          "text": "function hmi_SfSimpleMap_updateIconPositionsOverlay(view, model)"
+        },
+        {
+          "line": 99,
+          "text": "bgactive = hmi_getViewProperty(view,  hmi_getPropertyName(\"BackgroundImageTollWaySmall\"))"
+        },
+        {
+          "line": 100,
+          "text": "bginactive = hmi_getViewProperty(view,  hmi_getPropertyName(\"BackgroundImageNormalSmall\"))"
+        },
+        {
+          "line": 104,
+          "text": "bgactive = hmi_getViewProperty(view,  hmi_getPropertyName(\"BackgroundImageTollWayBig\") )"
+        },
+        {
+          "line": 105,
+          "text": "bginactive = hmi_getViewProperty(view,  hmi_getPropertyName(\"BackgroundImageNormalBig\") )"
+        },
+        {
+          "line": 123,
+          "text": "icon = hmi_getModelValue(model, row, icon1Col + iconIdx)"
+        },
+        {
+          "line": 155,
+          "text": "isTollWay = hmi_getModelValue( model, row, 27 );"
+        },
+        {
+          "line": 159,
+          "text": "-- bgimage = hmi_getViewProperty(view, hmi_getPropertyName(\"BackgroundImageTollway\"))"
+        },
+        {
+          "line": 160,
+          "text": "hmi_replaceViewProperty( view, hmi_getPropertyName(\"BackgroundImage\"), bgactive)"
+        },
+        {
+          "line": 162,
+          "text": "-- bgimage = hmi_getViewProperty(view, hmi_getPropertyName(\"BackgroundImageNormal\"))"
+        },
+        {
+          "line": 163,
+          "text": "hmi_replaceViewProperty( view, hmi_getPropertyName(\"BackgroundImage\"), bginactive)"
+        }
+      ],
+      "matching_line_count": 19
+    },
+    {
+      "path": "opt/hmi/data/ro/common/script/hmi_mapScaleRotation.lua",
+      "size": 722,
+      "sha256": "93c7701bb54e975ea9e572f9708457aad4afdb0c000ae3f1872a8f11ecd70488",
+      "observation": "Reads existing model value at row 0/column 8 and adjusts MapscaleControllerRotation; no tile/navigation data source defined.",
+      "selected_lines": [
+        {
+          "line": 1,
+          "text": "function hmi_mapScaleRotation(view, model)"
+        },
+        {
+          "line": 3,
+          "text": "scale_indicator_percent = hmi_getModelValue(model, 0, 8)"
+        },
+        {
+          "line": 25,
+          "text": "hmi_setContainerFloatProperty( view, hmi_getPropertyName(\"MapscaleControllerRotation\"), rotation );"
+        }
+      ],
+      "matching_line_count": 3
+    },
+    {
+      "path": "opt/sys/etc/devc-navsens.cfg",
+      "size": 1928,
+      "sha256": "da38119157c479e7dadd9f6b9f1fc0492f0e84c14e79c8cd15ea3872fea6e10c",
+      "observation": "GPS sensor configuration contains u-blox UBX command bytes; configuration presence does not establish a running GPS driver/service.",
+      "selected_lines": [
+        {
+          "line": 6,
+          "text": "<type> gps </type>"
+        },
+        {
+          "line": 7,
+          "text": "<ubx> 06 00 14 00 01 00 00 00 D0 08 00 00 00 C2 01 00 03 00 03 00 00 00 00 00 </ubx>"
+        },
+        {
+          "line": 8,
+          "text": "<ubx> 06 13 04 00 07 00 8B 29 </ubx>"
+        },
+        {
+          "line": 9,
+          "text": "<ubx> 06 01 08 00 F0 00 01 00 01 01 00 01 </ubx>"
+        },
+        {
+          "line": 10,
+          "text": "<ubx> 06 01 08 00 F0 01 01 00 01 01 00 01 </ubx>"
+        },
+        {
+          "line": 11,
+          "text": "<ubx> 06 01 08 00 F0 02 01 00 01 01 00 01 </ubx>"
+        },
+        {
+          "line": 12,
+          "text": "<ubx> 06 01 08 00 F0 03 01 00 01 01 00 01 </ubx>"
+        },
+        {
+          "line": 13,
+          "text": "<ubx> 06 01 08 00 F0 04 01 00 01 01 00 01 </ubx>"
+        },
+        {
+          "line": 14,
+          "text": "<ubx> 06 01 08 00 F0 05 01 00 01 01 00 01 </ubx>"
+        },
+        {
+          "line": 15,
+          "text": "<ubx> 06 01 08 00 01 02 00 01 00 00 01 00 </ubx>"
+        },
+        {
+          "line": 16,
+          "text": "<ubx> 06 01 08 00 01 03 00 01 00 00 01 00 </ubx>"
+        },
+        {
+          "line": 17,
+          "text": "<ubx> 06 01 08 00 01 04 00 01 00 00 01 00 </ubx>"
+        },
+        {
+          "line": 18,
+          "text": "<ubx> 06 01 08 00 01 06 00 01 00 00 01 00 </ubx>"
+        },
+        {
+          "line": 19,
+          "text": "<ubx> 06 01 08 00 01 12 00 01 00 00 01 00 </ubx>"
+        },
+        {
+          "line": 20,
+          "text": "<ubx> 06 01 08 00 01 20 00 01 00 00 01 00 </ubx>"
+        },
+        {
+          "line": 21,
+          "text": "<ubx> 06 01 08 00 01 21 00 01 00 00 01 00 </ubx>"
+        },
+        {
+          "line": 22,
+          "text": "<ubx> 06 01 08 00 01 22 00 01 00 00 01 00 </ubx>"
+        },
+        {
+          "line": 23,
+          "text": "<ubx> 06 01 08 00 01 30 00 01 00 00 01 00 </ubx>"
+        },
+        {
+          "line": 24,
+          "text": "<ubx> 06 01 08 00 02 20 00 30 00 00 30 00 </ubx>"
+        },
+        {
+          "line": 25,
+          "text": "<ubx> 06 01 08 00 03 02 00 00 00 00 00 00 </ubx>"
+        },
+        {
+          "line": 26,
+          "text": "<ubx> 06 01 08 00 03 0A 00 00 00 00 00 00 </ubx>"
+        },
+        {
+          "line": 27,
+          "text": "<ubx> 06 01 08 00 0A 02 00 01 00 00 01 00 </ubx>"
+        },
+        {
+          "line": 28,
+          "text": "<ubx> 06 01 08 00 0A 05 00 01 00 00 01 00 </ubx>"
+        },
+        {
+          "line": 29,
+          "text": "<ubx> 06 01 08 00 0A 08 00 01 00 00 01 00 </ubx>"
+        },
+        {
+          "line": 30,
+          "text": "<ubx> 06 01 08 00 0A 09 00 01 00 00 01 00 </ubx>"
+        },
+        {
+          "line": 31,
+          "text": "<ubx> 06 01 08 00 0C 10 00 01 00 00 01 00 </ubx>"
+        },
+        {
+          "line": 32,
+          "text": "<ubx> 06 24 24 00 FF FF 04 03 00 00 00 00 10 27 00 00 05 00 FA 00 FA 00 14 00 2C 01 37 00 00 00 00 00 00 00 00 00 00 00 00 00 </ubx>"
+        },
+        {
+          "line": 33,
+          "text": "<ubx> 06 23 28 00 00 00 4C 46 00 00 00 00 00 00 03 10 14 00 01 00 00 01 00 00 00 00 00 00 00 00 00 01 00 00 3C 00 00 00 00 00 00 00 00 00 </ubx>"
+        },
+        {
+          "line": 34,
+          "text": "<ubx> 06 25 10 00 00 00 00 00 40 1F E8 03 98 3A 10 0E E8 03 00 00 </ubx>"
+        },
+        {
+          "line": 35,
+          "text": "<ubx> 06 16 08 00 00 01 01 00 00 00 00 00 </ubx>"
+        },
+        {
+          "line": 36,
+          "text": "<ubx> 06 07 14 00 40 42 0F 00 E0 93 04 00 01 00 01 00 32 00 00 00 00 00 00 00 </ubx>"
+        },
+        {
+          "line": 37,
+          "text": "<ubx> 06 04 04 00 00 00 02 00 </ubx>"
+        }
+      ],
+      "matching_line_count": 32
+    },
+    {
+      "path": "opt/hmi/data/ro/Plugins/TerminalUIApp/TerminalUIApp.xml",
+      "size": 3385,
+      "sha256": "ab558a65f5894ae4846ca9d57cbcde7784907f0358e4bb96387272e965690f0b",
+      "observation": "A separate TerminalUIApp plugin resource exists. Its presence does not establish a map-rendering plugin ABI.",
+      "selected_lines": [
+        {
+          "line": 2,
+          "text": "<pluginApps>"
+        },
+        {
+          "line": 3,
+          "text": "<pluginApp applicationType=\"TerminalUI\" text=\"TerminalUI\">"
+        },
+        {
+          "line": 25,
+          "text": "<imageIdModel id=\"45\" imageId=\"56202\" preinst=\"true\"/>"
+        },
+        {
+          "line": 26,
+          "text": "<imageIdModel id=\"46\" imageId=\"56203\" preinst=\"true\"/>"
+        },
+        {
+          "line": 27,
+          "text": "<imageIdModel id=\"47\" preinst=\"false\"/>"
+        },
+        {
+          "line": 28,
+          "text": "<imageIdModel id=\"48\" preinst=\"false\"/>"
+        },
+        {
+          "line": 33,
+          "text": "<imageIdModel id=\"39\" imageId=\"57009\" preinst=\"true\"/>"
+        },
+        {
+          "line": 34,
+          "text": "<imageIdModel id=\"40\" imageId=\"60458\" preinst=\"true\"/>"
+        },
+        {
+          "line": 44,
+          "text": "<textIdModel id=\"38\" modelType=\"Info\" preinst=\"true\" textId=\"43240\">"
+        },
+        {
+          "line": 47,
+          "text": "<textIdModel id=\"2\" modelType=\"Info\" preinst=\"true\" textId=\"43528\">"
+        },
+        {
+          "line": 50,
+          "text": "<textIdModel id=\"6\" modelType=\"Info\" preinst=\"true\" textId=\"43520\">"
+        },
+        {
+          "line": 56,
+          "text": "<textIdModel id=\"37\" modelType=\"Info\" preinst=\"true\" textId=\"43528\">"
+        },
+        {
+          "line": 74,
+          "text": "<button action=\"9\" id=\"18\" imageModel=\"39\" tooltipModel=\"41\">"
+        },
+        {
+          "line": 81,
+          "text": "<button action=\"10\" id=\"19\" imageModel=\"40\" tooltipModel=\"41\">"
+        },
+        {
+          "line": 95,
+          "text": "</pluginApp>"
+        },
+        {
+          "line": 96,
+          "text": "</pluginApps>"
+        }
+      ],
+      "matching_line_count": 16
+    }
+  ],
+  "coding": {
+    "schema_path": "G:\\BMW-NBT-Emulator\\work\\graphics-port\\syset-native\\hmi_native_coding_schema.json",
+    "selected_records": [
+      {
+        "record_va": "0x987dcac",
+        "block_id": "0x3000",
+        "parameter": "NAVI_VARIANTE",
+        "first_byte": 58,
+        "last_byte": 58,
+        "offset": 0,
+        "mask": 63,
+        "compare_value": 1,
+        "feature_id": 441,
+        "feature_name": "va_NAVI_VARIANTE_ece"
+      },
+      {
+        "record_va": "0x987dcd0",
+        "block_id": "0x3000",
+        "parameter": "NAVI_VARIANTE",
+        "first_byte": 58,
+        "last_byte": 58,
+        "offset": 0,
+        "mask": 63,
+        "compare_value": 2,
+        "feature_id": 442,
+        "feature_name": "va_NAVI_VARIANTE_us"
+      },
+      {
+        "record_va": "0x987dcf4",
+        "block_id": "0x3000",
+        "parameter": "NAVI_VARIANTE",
+        "first_byte": 58,
+        "last_byte": 58,
+        "offset": 0,
+        "mask": 63,
+        "compare_value": 3,
+        "feature_id": 443,
+        "feature_name": "va_NAVI_VARIANTE_japan"
+      },
+      {
+        "record_va": "0x987dd18",
+        "block_id": "0x3000",
+        "parameter": "NAVI_VARIANTE",
+        "first_byte": 58,
+        "last_byte": 58,
+        "offset": 0,
+        "mask": 63,
+        "compare_value": 4,
+        "feature_id": 444,
+        "feature_name": "va_NAVI_VARIANTE_china"
+      },
+      {
+        "record_va": "0x987dd3c",
+        "block_id": "0x3000",
+        "parameter": "NAVI_VARIANTE",
+        "first_byte": 58,
+        "last_byte": 58,
+        "offset": 0,
+        "mask": 63,
+        "compare_value": 0,
+        "feature_id": 445,
+        "feature_name": "va_NAVI_VARIANTE_keine_navi"
+      },
+      {
+        "record_va": "0x987dd60",
+        "block_id": "0x3000",
+        "parameter": "NAVI_VARIANTE",
+        "first_byte": 58,
+        "last_byte": 58,
+        "offset": 0,
+        "mask": 63,
+        "compare_value": 5,
+        "feature_id": 446,
+        "feature_name": "va_NAVI_VARIANTE_korea"
+      },
+      {
+        "record_va": "0x987dd84",
+        "block_id": "0x3000",
+        "parameter": "NAVI_VARIANTE",
+        "first_byte": 58,
+        "last_byte": 58,
+        "offset": 0,
+        "mask": 63,
+        "compare_value": 6,
+        "feature_id": 447,
+        "feature_name": "va_NAVI_VARIANTE_hongkong"
+      },
+      {
+        "record_va": "0x987dda8",
+        "block_id": "0x3000",
+        "parameter": "NAVI_VARIANTE",
+        "first_byte": 58,
+        "last_byte": 58,
+        "offset": 0,
+        "mask": 63,
+        "compare_value": 7,
+        "feature_id": 448,
+        "feature_name": "va_NAVI_VARIANTE_taiwan"
+      },
+      {
+        "record_va": "0x987ddcc",
+        "block_id": "0x3000",
+        "parameter": "NAVI_VARIANTE",
+        "first_byte": 58,
+        "last_byte": 58,
+        "offset": 0,
+        "mask": 63,
+        "compare_value": 9,
+        "feature_id": 449,
+        "feature_name": "va_NAVI_VARIANTE_navi_vorbereitung"
+      },
+      {
+        "record_va": "0x987ddf0",
+        "block_id": "0x3000",
+        "parameter": "NAVI_VARIANTE",
+        "first_byte": 58,
+        "last_byte": 58,
+        "offset": 0,
+        "mask": 63,
+        "compare_value": 10,
+        "feature_id": 450,
+        "feature_name": "va_NAVI_VARIANTE_tv_ohne_navi"
+      },
+      {
+        "record_va": "0x9884474",
+        "block_id": "0x3000",
+        "parameter": "MAPVIEWER_FARBSET_AUSWAHL",
+        "first_byte": 102,
+        "last_byte": 102,
+        "offset": 0,
+        "mask": 8,
+        "compare_value": 1,
+        "feature_id": 1179,
+        "feature_name": "va_MAPVIEWER_FARBSET_AUSWAHL"
+      },
+      {
+        "record_va": "0x9884498",
+        "block_id": "0x3000",
+        "parameter": "MAPVIEWER_FARBSET_AUSWAHL",
+        "first_byte": 102,
+        "last_byte": 102,
+        "offset": 0,
+        "mask": 8,
+        "compare_value": 0,
+        "feature_id": 1180,
+        "feature_name": "va_MAPVIEWER_FARBSET_AUSWAHL_nicht_aktiv"
+      },
+      {
+        "record_va": "0x9887324",
+        "block_id": "0x3000",
+        "parameter": "NAVI_GEO_COORDINATE_INPUT",
+        "first_byte": 135,
+        "last_byte": 135,
+        "offset": 0,
+        "mask": 16,
+        "compare_value": 0,
+        "feature_id": 1511,
+        "feature_name": "va_NAVI_GEO_COORDINATE_INPUT_nicht_aktiv"
+      },
+      {
+        "record_va": "0x9887348",
+        "block_id": "0x3000",
+        "parameter": "NAVI_GEO_COORDINATE_INPUT",
+        "first_byte": 135,
+        "last_byte": 135,
+        "offset": 0,
+        "mask": 16,
+        "compare_value": 1,
+        "feature_id": 1512,
+        "feature_name": "va_NAVI_GEO_COORDINATE_INPUT"
+      },
+      {
+        "record_va": "0x9890eac",
+        "block_id": "0x3003",
+        "parameter": "GPS_FROM_NAVI",
+        "first_byte": 18,
+        "last_byte": 18,
+        "offset": 0,
+        "mask": 1,
+        "compare_value": 1,
+        "feature_id": 2617,
+        "feature_name": "va_GPS_FROM_NAVI"
+      },
+      {
+        "record_va": "0x9890ed0",
+        "block_id": "0x3003",
+        "parameter": "GPS_FROM_NAVI",
+        "first_byte": 18,
+        "last_byte": 18,
+        "offset": 0,
+        "mask": 1,
+        "compare_value": 0,
+        "feature_id": 2618,
+        "feature_name": "va_GPS_FROM_NAVI_nicht_aktiv"
+      },
+      {
+        "record_va": "0x9891f20",
+        "block_id": "0x3003",
+        "parameter": "NAVI_INFO_INSTANCE_ID",
+        "first_byte": 28,
+        "last_byte": 28,
+        "offset": 0,
+        "mask": 255,
+        "compare_value": 1,
+        "feature_id": 2734,
+        "feature_name": "va_NAVI_INFO_INSTANCE_ID_wert_1"
+      },
+      {
+        "record_va": "0x9891f44",
+        "block_id": "0x3003",
+        "parameter": "NAVI_INFO_INSTANCE_ID",
+        "first_byte": 28,
+        "last_byte": 28,
+        "offset": 0,
+        "mask": 255,
+        "compare_value": 2,
+        "feature_id": 2735,
+        "feature_name": "va_NAVI_INFO_INSTANCE_ID_wert_2"
+      },
+      {
+        "record_va": "0x9891f68",
+        "block_id": "0x3003",
+        "parameter": "NAVI_INFO_INSTANCE_ID",
+        "first_byte": 28,
+        "last_byte": 28,
+        "offset": 0,
+        "mask": 255,
+        "compare_value": 3,
+        "feature_id": 2736,
+        "feature_name": "va_NAVI_INFO_INSTANCE_ID_wert_3"
+      },
+      {
+        "record_va": "0x989402c",
+        "block_id": "0x3004",
+        "parameter": "ENT_MODE_NAVIGATION",
+        "first_byte": 14,
+        "last_byte": 14,
+        "offset": 0,
+        "mask": 96,
+        "compare_value": 0,
+        "feature_id": 2969,
+        "feature_name": "va_ENT_MODE_NAVIGATION_nicht_aktiv"
+      },
+      {
+        "record_va": "0x9894050",
+        "block_id": "0x3004",
+        "parameter": "ENT_MODE_NAVIGATION",
+        "first_byte": 14,
+        "last_byte": 14,
+        "offset": 0,
+        "mask": 96,
+        "compare_value": 1,
+        "feature_id": 2970,
+        "feature_name": "va_ENT_MODE_NAVIGATION"
+      },
+      {
+        "record_va": "0x9894074",
+        "block_id": "0x3004",
+        "parameter": "ENT_MODE_NAVIGATION",
+        "first_byte": 14,
+        "last_byte": 14,
+        "offset": 0,
+        "mask": 96,
+        "compare_value": 2,
+        "feature_id": 2971,
+        "feature_name": "va_ENT_MODE_NAVIGATION_aktiv_mit_autorisierung"
+      }
+    ],
+    "boundary": "Descriptors name configurable variants and proxy-instance selection. This investigation does not read effective vehicle coding or establish that toggling a flag supplies a navigation engine."
+  },
+  "conclusions": [
+    {
+      "id": "NAV-1",
+      "evidence_type": "observation",
+      "status": "answered",
+      "statement": "HmiGen_NavigationRemoteService.xml is a ServiceMenu resource, not a documented generic map rendering API."
+    },
+    {
+      "id": "NAV-2",
+      "evidence_type": "inference",
+      "status": "candidate_only",
+      "statement": "CPxyNavigation, CPxyMapControl and CPxyNavigationInfo are likely native navigation/model service boundaries; their callable ABI and registration/wire format remain unresolved."
+    },
+    {
+      "id": "NAV-3",
+      "evidence_type": "observation",
+      "status": "not_established",
+      "statement": "No usable native OSM tile, routing, geometry, or display-upload API was established in the inspected XML, dependency inventory, selected Lua files, coding descriptors, or candidate strings."
+    },
+    {
+      "id": "NAV-4",
+      "evidence_type": "unknown",
+      "status": "requires_more_evidence",
+      "statement": "Whether the expected map backend specifically runs on Jacinto, another native process, or a shared library cannot be proven from this read-only subset. The README states Jacinto and the navigation map engine are not working, but no missing-service runtime trace was captured here."
+    },
+    {
+      "id": "NAV-5",
+      "evidence_type": "implementation_requirement",
+      "status": "unimplemented",
+      "statement": "Native OSM integration needs a verified map-control/navigation service bridge or renderer plugin with the original HMI surface, input, route and position contracts. Simply editing this service XML or enabling a coding flag does not implement those components."
+    }
+  ],
+  "next_evidence": [
+    "Trace construction, registration and event dispatch for the three proxy-string anchors; recover service identity, serialization and subscriptions before injection.",
+    "Capture native startup/servicebroker diagnostics with missing navigation backend calls and inspect expected backend executables/libraries from the full firmware tree.",
+    "Investigate KML overlay request/response types as a potential geometry overlay path, while treating base-map rendering and routing as separate unverified requirements.",
+    "Recover the native map surface and texture/geometry ownership contract before implementing an OSM renderer; verify it within the original HMI using runtime frames and original controls."
+  ],
+  "native_navigation_changed": false,
+  "osm_rendering_verified": false
+}

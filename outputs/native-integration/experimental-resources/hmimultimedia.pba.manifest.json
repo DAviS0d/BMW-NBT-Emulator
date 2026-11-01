@@ -1,0 +1,25 @@
+{
+  "source": "G:\\BMW-NBT-Emulator\\work\\bridge-v2\\ifs\\walthread_keyboard_dma_v2_prio.ifs:opt/hmi/data/ro/app/hmimultimedia/hmimultimedia.pba",
+  "original_sha256": "e81598826c69debc86aa35f24ac7bd707b8ea66b24c1ccb8955305a9b97c3e70",
+  "output": "G:\\BMW-NBT-Emulator\\outputs\\native-integration\\experimental-resources\\hmimultimedia.pba",
+  "sha256": "34c495e8e884a12d50c9737967dda352ebc013f8cdee2e98080cab8294c99ffc",
+  "original_bytes": 7110,
+  "patched_bytes": 7164,
+  "component_id": 27224,
+  "appended_rows": [
+    {
+      "item_id": 12,
+      "label_assigned_by_native_hook": "Android Auto",
+      "template_item_id": 1,
+      "feature_gate_removed": true
+    },
+    {
+      "item_id": 13,
+      "label_assigned_by_native_hook": "CarPlay",
+      "template_item_id": 1,
+      "feature_gate_removed": true
+    }
+  ],
+  "requires": "Experimental native_devices.c label and selection hooks",
+  "runtime_verified": false
+}
