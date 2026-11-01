@@ -22,3 +22,5 @@ work/graphics-port/toolchain/compiler/zig.exe filter=lfs diff=lfs merge=lfs -tex
 work/graphics-port/toolchain/fast-extract/zig-x86_64-windows-0.15.2/zig.exe filter=lfs diff=lfs merge=lfs -text
 work/graphics-port/toolchain/zig-0.15.2.zip filter=lfs diff=lfs merge=lfs -text
 work/graphics-port/toolchain/zig-x86_64-windows-0.15.2/zig.exe filter=lfs diff=lfs merge=lfs -text
+work/graphics-port/hmi-runner/boot-cache/*.elf filter=lfs diff=lfs merge=lfs -text
+outputs/coding-build/*.ifs filter=lfs diff=lfs merge=lfs -text

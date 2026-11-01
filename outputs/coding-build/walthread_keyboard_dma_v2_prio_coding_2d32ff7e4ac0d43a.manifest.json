@@ -1,0 +1,47 @@
+{
+  "type": "EXPERIMENTAL_REPACKED_QNX_IFS",
+  "source": "C:\\Users\\david\\Documents\\GitHub\\BMW-NBT-Emulator\\work\\bridge-v2\\ifs\\walthread_keyboard_dma_v2_prio.ifs",
+  "source_sha256": "3e8a20915913e31427ac91b1f5184bc2f51acbdbc4ea7d127332a0f7773cb48b",
+  "output": "C:\\Users\\david\\Documents\\GitHub\\BMW-NBT-Emulator\\outputs\\coding-build\\walthread_keyboard_dma_v2_prio_coding_2d32ff7e4ac0d43a.ifs",
+  "output_sha256": "8b758b33e2074b5959ae96e055a811729a6e5512a253c76d84799318e95423e2",
+  "source_size": 261873732,
+  "output_size": 262001380,
+  "startup_size": 105816,
+  "startup_instructions_preserved": true,
+  "startup_checksum_valid": true,
+  "imagefs_checksum_valid": true,
+  "imagefs_header_offset": 105816,
+  "imagefs_size": 261895560,
+  "stored_size": 262001376,
+  "ram_size": 262001376,
+  "directory_offset": 261787428,
+  "entry_count": 1051,
+  "files": [
+    {
+      "path": "boot/lib/libnbt_offline_syset.so",
+      "operation": "replace",
+      "host_source": "C:\\Users\\david\\Documents\\GitHub\\BMW-NBT-Emulator\\outputs\\coding-build\\build-2d32ff7e4ac0d43a\\libnbt_offline_syset.so",
+      "size": 15484,
+      "image_offset": 261771944,
+      "absolute_offset": 261877760,
+      "sha256": "61ea10545d8c700ede86d4be7947751d660b033fd0d93b41394af075c49f883e",
+      "original_size": 15640,
+      "original_sha256": "dcbe5bb49300db96290c4c0dcdbede769a2ef73533478892f5320c548b131a93"
+    }
+  ],
+  "added_directories": [],
+  "trailing_bytes_preserved": 4,
+  "references": [
+    "https://raw.githubusercontent.com/vocho/openqnx/master/trunk/services/system/public/sys/image.h",
+    "https://qnx.com/developers/docs/6.4.0/neutrino/building/load_process.html"
+  ],
+  "runtime_boot_verified": false,
+  "ncd": "C:\\Users\\david\\Documents\\GitHub\\BMW-NBT-Emulator\\coding\\CAFD_00000DED_003_012_025.ncd",
+  "coding_version": "3.12.25",
+  "identity": {
+    "stream": "c21693c3d8565f27fce2b8e301d113d3aca3225942a62247d844899b1c3dbfc1",
+    "source": "3e8a20915913e31427ac91b1f5184bc2f51acbdbc4ea7d127332a0f7773cb48b",
+    "provider": "63b9af61e849864f630ae03ff9d273da48f873dcf723f22e6c075a652635bcb7",
+    "version": 1
+  }
+}

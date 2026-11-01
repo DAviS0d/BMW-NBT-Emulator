@@ -5,6 +5,8 @@ Format, established from the files themselves (docs/RAPORT_STARTUP_M.md):
   'PDDS' + 124-byte DDS header (NVTT, FourCC DXT1, width, height,
   mipMapCount = frame count), then one chunk per frame:
   'HEAD' u32 length, payload = LZO1X stream of the frame's DXT1 blocks.
+Some files (eva_ani_0x07/0x08, 800x300) instead store every frame as raw DXT1
+blocks, back to back (file size = 0x80 + frames * frame bytes).
 Usage:
   py -3 pdds.py FILE.pdds OUTDIR        (writes frame_000.png ...)
 Output PNGs are derived from firmware and stay out of git.
@@ -117,6 +119,10 @@ def read_pdds(path):
     if data[:4] != b"PDDS" or data[0x54:0x58] != b"DXT1":
         raise ValueError("not a DXT1 PDDS file")
     height, width, linear, _, frames = struct.unpack_from("<5I", data, 12)
+    if data[0x80:0x84] != b"HEAD" and len(data) == 0x80 + frames * linear:
+        chunks = [data[0x80 + i * linear:0x80 + (i + 1) * linear] for i in range(frames)]
+        return {"width": width, "height": height, "frame_bytes": linear, "frames": frames,
+                "chunks": chunks, "raw": True}
     chunks, offset = [], 0x80
     while offset + 8 <= len(data):
         tag, length = data[offset:offset + 4], struct.unpack_from("<I", data, offset + 4)[0]
@@ -124,7 +130,8 @@ def read_pdds(path):
             raise ValueError(f"unexpected chunk {tag!r} at {offset:#x}")
         chunks.append(data[offset + 8:offset + 8 + length])
         offset += 8 + length
-    return {"width": width, "height": height, "frame_bytes": linear, "frames": frames, "chunks": chunks}
+    return {"width": width, "height": height, "frame_bytes": linear, "frames": frames, "chunks": chunks,
+            "raw": False}
 
 
 def rgb565(c):
@@ -203,6 +210,9 @@ def frames(path):
     LZO1X), then inter frames applied to the previous decoded frame."""
     info = read_pdds(path)
     blocks_x, blocks_y = info["width"] // 4, info["height"] // 4
+    if info["raw"]:
+        yield from enumerate(info["chunks"])
+        return
     previous = None
     for index, chunk in enumerate(info["chunks"]):
         stream = lzo1x(chunk)

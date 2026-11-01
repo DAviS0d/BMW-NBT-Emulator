@@ -1,0 +1,19 @@
+﻿{
+    "deviceId":  "USB\\VID_05AC\u0026PID_12A8\\00008130000479D13642001C",
+    "registry":  "HKLM:\\SYSTEM\\CurrentControlSet\\Enum\\USB\\VID_05AC\u0026PID_12A8\\00008130000479D13642001C\\Device Parameters",
+    "values":  {
+                   "AltConfigurationValue":  3,
+                   "OriginalConfigurationValue":  2
+               },
+    "serviceMode":  "Auto",
+    "serviceState":  "Running",
+    "cdcEnumerator":  {
+                          "registry":  "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{88bae032-5a81-49f0-bc3d-a4ff138216d6}\\0001",
+                          "present":  true,
+                          "value":  [
+                                        2,
+                                        0,
+                                        0
+                                    ]
+                      }
+}

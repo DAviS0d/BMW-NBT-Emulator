@@ -1,26 +1,108 @@
-"""Reuse the installed Android Auto DHU, capturing only our owned receiver window."""
+"""Android Auto through Google's Desktop Head Unit (DHU), capturing its video framebuffer.
+
+adb and the DHU come from an installed Android SDK when present, otherwise
+they are downloaded once from Google's SDK repository (checksums pinned) to
+%LOCALAPPDATA%\\BMW-NBT-Emulator\\android-tools, outside the repository.
+"""
 import ctypes
 from ctypes import wintypes as w
+import hashlib
 import io
+import os
 from pathlib import Path
+import re
+import shutil
 import subprocess
 import threading
 import time
+import urllib.request
+import zipfile
 from PIL import Image
+
+SDK_REPOSITORY = 'https://dl.google.com/android/repository/'
+# Same packages Android Studio installs: platform-tools and extras;google;auto.
+DOWNLOADS = {
+    'platform-tools': ('platform-tools_r37.0.1-win.zip', 'e03e78b1d80b396f1c3358e31251cb31740e1110',
+                       'platform-tools/adb.exe'),
+    'dhu': ('desktop-head-unit-windows-x64_r02.1.zip', 'c27bf84e59dda7b79315b6ca2a314063feffd6ac',
+            'desktop-head-unit.exe'),
+}
+TOOLS = Path(os.environ.get('LOCALAPPDATA', Path.home())) / 'BMW-NBT-Emulator/android-tools'
+# The NBT display is 1280x480: the DHU renders 1280x720 video with 120 px
+# margins above and below, so Android Auto lays out its wide 1280x480 UI.
+WIDTH, HEIGHT, VIDEO_HEIGHT = 1280, 480, 720
+LEGACY_ROOT = Path(r'G:\mibstd2-emulator\mib2emu')
+
+
+def _sdk_roots():
+    for name in ('NBT_ANDROID_SDK', 'ANDROID_HOME', 'ANDROID_SDK_ROOT'):
+        if os.environ.get(name):
+            yield Path(os.environ[name])
+    if os.environ.get('LOCALAPPDATA'):
+        yield Path(os.environ['LOCALAPPDATA']) / 'Android/Sdk'
+
+
+def _download(name, report):
+    """Fetch one SDK package into TOOLS/<name>, verifying Google's published SHA-1."""
+    archive, sha1, member = DOWNLOADS[name]
+    target = TOOLS / name
+    if (target / member).is_file():
+        return target / member
+    report(f'Downloading {name} from Google (first use only)…')
+    TOOLS.mkdir(parents=True, exist_ok=True)
+    partial = TOOLS / (archive + '.part')
+    digest = hashlib.sha1()
+    with urllib.request.urlopen(SDK_REPOSITORY + archive, timeout=60) as response, open(partial, 'wb') as stream:
+        while chunk := response.read(1 << 16):
+            digest.update(chunk)
+            stream.write(chunk)
+    if digest.hexdigest() != sha1:
+        partial.unlink()
+        raise RuntimeError(f'{archive}: checksum mismatch, download discarded')
+    temporary = TOOLS / (name + '.tmp')
+    shutil.rmtree(temporary, ignore_errors=True)
+    with zipfile.ZipFile(partial) as package:
+        package.extractall(temporary)
+    partial.unlink()
+    shutil.rmtree(target, ignore_errors=True)
+    temporary.rename(target)
+    return target / member
+
+
+def find_tools(report=lambda message: None):
+    """(adb, dhu): installed Android SDK first, then the old mib2emu layout, else download."""
+    adb = dhu = None
+    for root in _sdk_roots():
+        adb = adb or next((p for p in [root / 'platform-tools/adb.exe'] if p.is_file()), None)
+        dhu = dhu or next((p for p in [root / 'extras/google/auto/desktop-head-unit.exe'] if p.is_file()), None)
+    legacy_adb, legacy_dhu = LEGACY_ROOT / 'tools/platform-tools/adb.exe', LEGACY_ROOT / 'tools/dhu/desktop-head-unit.exe'
+    adb = adb or (legacy_adb if legacy_adb.is_file() else None) or _download('platform-tools', report)
+    dhu = dhu or (legacy_dhu if legacy_dhu.is_file() else None) or _download('dhu', report)
+    return adb, dhu
+
+
+def _content(image):
+    """The 1280x480 Android Auto area of the DHU's 1280x720 video (margins cropped)."""
+    if image.size != (WIDTH, VIDEO_HEIGHT):
+        return image
+    top = (VIDEO_HEIGHT - HEIGHT) // 2
+    return image.crop((0, top, WIDTH, top + HEIGHT))
 
 
 class AndroidSurface:
-    def __init__(self, mib_root=r'G:\mibstd2-emulator\mib2emu'):
-        self.root = Path(mib_root)
+    def __init__(self, report=lambda message: None):
+        self.report = report
         self.process = None
         self.hwnd = None
         self.message = 'Receiver stopped'
         self.lock = threading.RLock()
+        self.screenshot_retry = 0
+        self.video_focus = self.had_video_focus = False
+        self.focus_checked = 0
         self.capture_path = Path(__file__).resolve().parents[3] / 'outputs/NBT_launcher/android-auto-frame.png'
 
     def start(self):
-        adb = self.root / 'tools/platform-tools/adb.exe'
-        dhu = self.root / 'tools/dhu/desktop-head-unit.exe'
+        adb, dhu = find_tools(self.report)
         result = subprocess.run([str(adb),'devices'], capture_output=True, text=True, timeout=10,
                                 creationflags=subprocess.CREATE_NO_WINDOW)
         devices = [line.split()[0] for line in result.stdout.splitlines()[1:] if line.strip().endswith('\tdevice')]
@@ -32,7 +114,13 @@ class AndroidSurface:
             raise RuntimeError('Could not forward the Android Auto head-unit server on port 5277')
         ini = Path(__file__).resolve().parents[3] / 'outputs/NBT_launcher/android-auto.ini'
         ini.parent.mkdir(parents=True, exist_ok=True)
-        ini.write_text('[general]\ntouch = true\nresolution = 800x480\ndpi = 140\nframerate = 30\n[sensors]\nlocation = true\nnight_mode = true\ndriving_status = true\n',encoding='utf-8')
+        # controller = true: the iDrive knob drives Android Auto's rotary (dpad) input.
+        ini.write_text(f'[general]\ntouch = true\ncontroller = true\nresolution = {WIDTH}x{VIDEO_HEIGHT}\n'
+                       f'marginheight = {VIDEO_HEIGHT - HEIGHT}\ndpi = 140\nframerate = 30\n'
+                       '[sensors]\nlocation = true\nnight_mode = true\ndriving_status = true\n',encoding='utf-8')
+        user = ctypes.WinDLL('user32')
+        user.GetForegroundWindow.restype = w.HWND
+        previous = user.GetForegroundWindow()
         self.process = subprocess.Popen([str(dhu),'-c',str(ini)],cwd=dhu.parent,stdin=subprocess.PIPE,
                                         stdout=subprocess.PIPE,stderr=subprocess.STDOUT,
                                         text=True,encoding='utf-8',errors='replace',
@@ -41,7 +129,46 @@ class AndroidSurface:
         def drain():
             for line in process.stdout:
                 self.message = line.strip()[:150]
+                focus = re.search(r'Has video focus: (true|false)', line)
+                if focus:
+                    self.video_focus = focus.group(1) == 'true'
+                    self.had_video_focus = self.had_video_focus or self.video_focus
         threading.Thread(target=drain,daemon=True).start()
+        threading.Thread(target=self._tuck_window,args=(previous,),daemon=True).start()
+
+    def _tuck_window(self, previous):
+        """Move the DHU window off screen, out of the taskbar, and give the
+        keyboard back to the viewer. It keeps rendering (screenshot and
+        PrintWindow both still work); only the viewer shows Android Auto."""
+        user = ctypes.WinDLL('user32')
+        user.GetWindowLongW.argtypes = [w.HWND,ctypes.c_int]
+        user.SetWindowLongW.argtypes = [w.HWND,ctypes.c_int,ctypes.c_long]
+        user.SetWindowPos.argtypes = [w.HWND,w.HWND,ctypes.c_int,ctypes.c_int,ctypes.c_int,ctypes.c_int,w.UINT]
+        user.ShowWindow.argtypes = [w.HWND,ctypes.c_int]
+        user.SetForegroundWindow.argtypes = [w.HWND]
+        deadline = time.monotonic()+20
+        while time.monotonic() < deadline:
+            hwnd = self._window()
+            if hwnd:
+                GWL_EXSTYLE, WS_EX_TOOLWINDOW, WS_EX_APPWINDOW = -20, 0x80, 0x40000
+                style = user.GetWindowLongW(hwnd,GWL_EXSTYLE)
+                user.ShowWindow(hwnd,0)            # re-shown below so the taskbar drops it
+                user.SetWindowLongW(hwnd,GWL_EXSTYLE,(style | WS_EX_TOOLWINDOW) & ~WS_EX_APPWINDOW)
+                user.SetWindowPos(hwnd,None,-32000,-32000,0,0,0x0001|0x0004|0x0010)  # NOSIZE|NOZORDER|NOACTIVATE
+                user.ShowWindow(hwnd,4)            # SW_SHOWNOACTIVATE
+                if previous:
+                    user.SetForegroundWindow(previous)
+                self.hwnd = hwnd
+                return
+            time.sleep(.05)
+
+    def tap(self, x, y):
+        """Touch at (x, y) of the 1280x480 Android Auto area."""
+        with self.lock:
+            if not self.process or self.process.poll() is not None:
+                raise RuntimeError('Android Auto receiver is not running')
+            self.process.stdin.write(f'tap {int(x)} {int(y) + (VIDEO_HEIGHT - HEIGHT) // 2}\n')
+            self.process.stdin.flush()
 
     def _window(self):
         if not self.process or self.process.poll() is not None:
@@ -68,6 +195,8 @@ class AndroidSurface:
         with self.lock:
             if not self.process or self.process.poll() is not None:
                 return None
+            if time.monotonic() < self.screenshot_retry:
+                return self._window_frame()
             before = self.capture_path.stat().st_mtime_ns if self.capture_path.exists() else 0
             self.process.stdin.write('screenshot ' + self.capture_path.as_posix() + '\n')
             self.process.stdin.flush()
@@ -77,11 +206,14 @@ class AndroidSurface:
                     if self.capture_path.stat().st_mtime_ns != before:
                         with Image.open(self.capture_path) as image:
                             output=io.BytesIO()
-                            image.convert('RGB').save(output,format='PPM')
+                            _content(image.convert('RGB')).save(output,format='PPM')
                             return output.getvalue()
                 except OSError:
                     pass
                 time.sleep(.01)
+            # No screenshot (the DHU reports no video focus at times): use the
+            # window capture for a while instead of waiting on every frame.
+            self.screenshot_retry = time.monotonic()+3
         return self._window_frame()
 
     def _window_frame(self):
@@ -118,7 +250,7 @@ class AndroidSurface:
                 pixels = ctypes.create_string_buffer(width*height*4)
                 if not gdi.GetDIBits(memory,bitmap,0,height,pixels,header,0):
                     return None
-                image = Image.frombytes('RGB',(width,height),pixels.raw,'raw','BGRX')
+                image = _content(Image.frombytes('RGB',(width,height),pixels.raw,'raw','BGRX'))
                 output = io.BytesIO()
                 image.save(output,format='PPM')
                 return output.getvalue()
@@ -138,6 +270,18 @@ class AndroidSurface:
                 raise RuntimeError('Android Auto receiver is not running')
             self.process.stdin.write(commands[name]+'\n')
             self.process.stdin.flush()
+
+    def exited(self):
+        """True once Android Auto's own "Exit" was chosen: the phone then gives
+        the screen back to the head unit (DHU video focus true -> false)."""
+        with self.lock:
+            if not self.process or self.process.poll() is not None:
+                return False
+            if time.monotonic() - self.focus_checked > 1:
+                self.focus_checked = time.monotonic()
+                self.process.stdin.write('focus video\n')
+                self.process.stdin.flush()
+        return self.had_video_focus and not self.video_focus
 
     def status(self):
         return {'running':bool(self.process and self.process.poll() is None),'message':self.message}

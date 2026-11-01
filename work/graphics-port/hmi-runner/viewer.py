@@ -50,6 +50,8 @@ DEFAULT_PROFILE_FILES = (
     WORKSPACE / "work/emulation-tools/qemu-portable/qemu-system-x86_64.exe",
 )
 STARTUP_SCREEN = WORKSPACE / "work/startup-analysis"
+# tools/apply_coding.py: delivers the user's CAFD (coding/*.ncd) to the firmware.
+TOOLS = WORKSPACE / "tools"
 STARTUP_FRAME_MS = 40
 VIEWER_ACTIONS = ("up", "down", "select", "back", "menu", "option", "tilt_left", "tilt_right",
                   "tilt_up", "tilt_down", "radio", "media", "nav", "tel")
@@ -141,6 +143,10 @@ class LiveViewer:
                  background="#101010", foreground="#f0f0f0", font=("Segoe UI", 12)).pack(side="left")
         self.stop_button = ttk.Button(top, text="Stop", command=self.request_stop)
         self.stop_button.pack(side="right")
+        # CAFD notices, in the title bar so the 1280x480 display keeps its size.
+        self.coding_note = tk.Label(top, text="", background="#101010", foreground="#ffb020",
+                                    font=("Segoe UI", 10, "bold"))
+        self.coding_note.pack(side="left", padx=(16, 0))
         frame = tk.Frame(root, background="black", width=self.max_frame_width,
                          height=self.max_frame_height)
         frame.pack(fill="both", expand=True, padx=14)
@@ -188,6 +194,7 @@ class LiveViewer:
                                  ("<F4>", "nav"), ("<F5>", "tel")):
             root.bind(sequence, lambda event, name=action: self._send_action(name, "keyboard"))
         root.bind("<MouseWheel>", self._wheel)
+        self.image_label.bind("<Button-1>", self._click)
         self._event("window_created")
         self.worker = threading.Thread(target=self._run_vm, name="original-nbt-vm", daemon=False)
         self.worker.start()
@@ -218,8 +225,12 @@ class LiveViewer:
                         button_hold_seconds=.020 if self.dma_transport else .075,
                         button_release_gap_seconds=0 if self.dma_transport else .075)
                     self.controller.start()
+            source_ifs = self._coded_ifs()
+            if self.stop_event.is_set():
+                result = {"stop_reason": "cancelled_before_launch"}
+                return
             result = run_hmi.run(
-                self.source_ifs, seconds=3600, transport="virtio", input_port=0,
+                source_ifs, seconds=3600, transport="virtio", input_port=0,
                 virtio_port=1, input_virtio=True, keyboard_hal=True,
                 synchronize_clock=False, instruction_counting=False,
                 stop_event=self.stop_event,
@@ -250,6 +261,38 @@ class LiveViewer:
                 self.messages.put(("error", error_message))
             elif result is not None:
                 self.messages.put(("done", result))
+
+    def _coded_ifs(self):
+        """The selected IFS carrying the user's CAFD coding. A changed CAFD makes
+        tools/apply_coding.py rebuild the image once; on failure the built-in
+        coding is used and the reason is shown."""
+        try:
+            sys.path.insert(0, str(TOOLS))
+            from apply_coding import coded_ifs
+            image, status = coded_ifs(self.source_ifs,
+                                      on_rebuild=lambda: self.messages.put(("coding", "rebuilding")))
+        except Exception as error:
+            (self.proof_directory / "coding-error.txt").write_text(traceback.format_exc(), encoding="utf-8")
+            self.messages.put(("coding_error", f"{type(error).__name__}: {error}"))
+            return self.source_ifs
+        self.proof["coded_ifs"] = str(image)
+        self.messages.put(("coding", status))
+        return image
+
+    def _show_coding(self, status):
+        self.proof["coding_status"] = status
+        self._event("coding_" + status)
+        if status == "rebuilding":
+            self.coding_note.configure(foreground="#ffb020",
+                                       text="⚠ CAFD changed – rebuilding the firmware image with the new coding. "
+                                            "This start takes longer.")
+            self.status.set("CAFD changed: applying the new coding to the firmware image…")
+        elif status == "rebuilt":
+            self.coding_note.configure(foreground="#7fd07f", text="CAFD changed – new coding applied.")
+            self.root.after(15000, lambda: self.coding_note.configure(text=""))
+        elif status == "cached":
+            self.coding_note.configure(foreground="#7fd07f", text="Modified CAFD coding active.")
+            self.root.after(8000, lambda: self.coding_note.configure(text=""))
 
     # Startup screen: the emulator does not run EVA (NBTCarHUOne), which shows the
     # coded startup animation/splash on the car. Reproduce its choice from the
@@ -291,6 +334,11 @@ class LiveViewer:
 
     def _startup_photo(self, path):
         photo = tk.PhotoImage(master=self.root, file=path)
+        # Smaller EVA resources (800x300 splash) are stretched to 1280x480 by
+        # the exact ratio, e.g. zoom 8 / subsample 5; animation frames already are.
+        group = math.gcd(photo.width(), 1280)
+        if photo.width() < 1280 and photo.height() * 1280 == 480 * photo.width():
+            photo = photo.zoom(1280 // group).subsample(photo.width() // group)
         divisor = max(1, math.ceil(photo.width() / self.max_frame_width),
                       math.ceil(photo.height() / self.max_frame_height))
         return photo if divisor == 1 else photo.subsample(divisor, divisor)
@@ -359,6 +407,24 @@ class LiveViewer:
             return self._send_action("up" if event.delta > 0 else "down", "mouse_wheel")
         return "break"
 
+    def _click(self, event):
+        """Mouse click on Android Auto or CarPlay = touch at that point of its 1280x480 frame."""
+        surface, photo = self.extension_surface, self.extension_photo
+        if self.active_extension not in ('android_auto', 'carplay') or not surface or photo is None:
+            return "break"
+        x = event.x - (self.image_label.winfo_width() - photo.width()) // 2
+        y = event.y - (self.image_label.winfo_height() - photo.height()) // 2
+        if not (0 <= x < photo.width() and 0 <= y < photo.height()):
+            return "break"
+        scale = getattr(self, 'extension_scale', 1)
+        def dispatch():
+            try:
+                surface.tap(x * scale, y * scale)
+            except Exception as error:
+                self.messages.put(('extension_error', str(error)))
+        threading.Thread(target=dispatch, daemon=True).start()
+        return "break"
+
     def _handle_controller_event(self, event):
         kind = event.get("kind", "unknown")
         counts = self.proof["controller_event_counts"]
@@ -407,6 +473,13 @@ class LiveViewer:
                     self.status.set("QNX is starting… Waiting for the first frame.")
             elif kind == "controller":
                 self._handle_controller_event(data)
+            elif kind == "coding":
+                self._show_coding(data)
+            elif kind == "coding_error":
+                self.proof["coding_error"] = data
+                self._event("coding_error", error=data)
+                self.coding_note.configure(foreground="#ff6060",
+                                           text="⚠ CAFD coding not applied (built-in coding used): " + data)
             elif kind == "done":
                 self.worker_result = data
                 self.worker_finished = True
@@ -438,6 +511,15 @@ class LiveViewer:
             elif kind == 'extension_error':
                 self.status.set(str(data))
                 self._event('extension_error', detail=str(data))
+            elif kind == 'extension_exit':
+                if self.active_extension == data[0] and self.extension_surface is data[1]:
+                    self._close_extension()
+                    self._event('native_extension_exited_from_phone', source=data[0])
+            elif kind == 'extension_status':
+                # Start-up steps the user has to act on (PIN, administrator prompt).
+                if self.active_extension == data[0] and not self.extension_surface:
+                    self.image_label.configure(image='', text=data[1])
+                    self.status.set(data[1])
 
     def _activate_extension(self, kind):
         if kind not in ('android_auto', 'carplay', 'navigation', 'bluetooth'):
@@ -450,11 +532,14 @@ class LiveViewer:
         def start():
             try:
                 if kind == 'carplay':
-                    from projection_bridge import ProjectionBridge
-                    surface = ProjectionBridge()
-                    state = surface.status('carplay', refresh=True)
-                    if not state['available']:
-                        raise RuntimeError(state['message'])
+                    # Bundled PlayPort receiver (work/carplay), wired iPhone.
+                    from carplay_receiver import CarPlayReceiver
+                    surface = CarPlayReceiver(report=lambda text: self.messages.put(('extension_status', (kind, text))))
+                    try:
+                        surface.start()
+                    except BaseException:
+                        surface.close()
+                        raise
                 elif kind == 'navigation':
                     from navigation_surface import NavigationSurface
                     surface = NavigationSurface()
@@ -477,6 +562,7 @@ class LiveViewer:
         self.extension_surface = None
         self.extension_frame = None
         self.extension_photo = None
+        self.display_photo = None      # forces the iDrive frame back onto the screen
         self.last_frame_stamp = None
         self._extension_digest = None
         if surface:
@@ -513,6 +599,7 @@ class LiveViewer:
                 photo = tk.PhotoImage(master=self.root, data=frame[1], format='PPM')
                 divisor = max(1, math.ceil(photo.width()/self.max_frame_width), math.ceil(photo.height()/self.max_frame_height))
                 self.extension_photo = photo if divisor == 1 else photo.subsample(divisor, divisor)
+                self.extension_scale = divisor
                 self.image_label.configure(image=self.extension_photo, text='')
                 if self.run_directory:
                     try:
@@ -558,6 +645,9 @@ class LiveViewer:
                     payload = surface.frame()
                 if payload and self.active_extension == kind and self.extension_surface is surface:
                     self.extension_frame = kind, payload
+                # "Exit" in Android Auto / the BMW button in CarPlay: back to the NBT menu.
+                if getattr(surface, 'exited', lambda: False)():
+                    self.messages.put(('extension_exit', (kind, surface)))
             except Exception as error:
                 self.messages.put(('extension_error', str(error)))
             finally:
