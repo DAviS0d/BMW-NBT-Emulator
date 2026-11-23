@@ -22,6 +22,25 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 WORKSPACE = ROOT.parent.parent
 
+# HU_NBT 003_009_004: init_qtime copies the 32-bit cpu_freq into the low
+# half of qtime.cycles_per_sec and explicitly clears its high half. Keep
+# this instruction-sized adapter tied to the analyzed startup, not an ABI guess.
+QTIME_FREQUENCY_ADDRESS = 0x202F03
+QTIME_FREQUENCY_INSTRUCTIONS = bytes.fromhex(
+    'a1109c2100'      # mov eax, [cpu_freq]
+    '834b3c01'        # or dword [ebx+0x3c], 1
+    'c7430400000000'  # mov dword [ebx+4], 0
+    '8903')          # mov [ebx], eax
+CPU_FREQUENCY_ADDRESS = 0x219C10
+APIC_FREQUENCY_ADDRESS = 0x219B70
+
+
+def validate_qtime_frequency_adapter(image, physical):
+    offset = QTIME_FREQUENCY_ADDRESS - physical
+    if (offset < 0 or image[offset:offset + len(QTIME_FREQUENCY_INSTRUCTIONS)]
+            != QTIME_FREQUENCY_INSTRUCTIONS):
+        raise ValueError('Unexpected init_qtime frequency instructions; refusing 64-bit clock adapter')
+
 
 def classify_evidence(serial, monitor):
     combined = "\n".join(serial.values())
@@ -47,7 +66,7 @@ def qemu_clock_callback(apic_hz=1_000_000_000):
     """
     if not isinstance(apic_hz, int) or not 1_000_000 <= apic_hz <= 4_000_000_000:
         raise ValueError('Virtual APIC frequency must fit the calibrated 32-bit adapter')
-    c = bytearray(b"\x53\x56\x57")  # preserve ebx, esi, edi (cdecl)
+    c = bytearray(b"\x53\x56\x57\x55")  # preserve ebx, esi, edi, ebp (cdecl)
     c.extend(b"\xc7\x05" + struct.pack("<II", 0xFEE003E0, 0xB))
     c.extend(b"\xc7\x05" + struct.pack("<II", 0xFEE00380, 0xFFFFFFFF))
     c.extend(b"\x0f\x31\x89\xc6\x89\xd7")  # rdtsc; save edx:eax
@@ -56,12 +75,32 @@ def qemu_clock_callback(apic_hz=1_000_000_000):
     c.extend(b"\x81\xfb" + struct.pack("<I", 10_000_000))
     c.extend(b"\x0f\x82" + struct.pack("<i", loop - (len(c) + 6)))
     c.extend(b"\x0f\x31\x29\xf0\x19\xfa")  # rdtsc; subtract saved value
-    # The10-million-tick sample fits32bits at the supported CPU/APIC rates.
-    # CPU_Hz = measured_TSC_delta * LAPIC_Hz / measured_LAPIC_delta.
-    c.extend(b"\xb9" + struct.pack("<I", apic_hz) + b"\xf7\xe1\xf7\xf3")
-    c.extend(b"\xa3" + struct.pack("<I", 0x219C10))
-    c.extend(b"\xc7\x05" + struct.pack("<II", 0x219B70, apic_hz))
-    c.extend(b"\x5f\x5e\x5b\xc3")
+    # Hz = uint64(TSC_delta) * uint32(APIC_Hz) / uint32(APIC_delta).
+    # Keep the full 96-bit product. Divide its upper two limbs first, then
+    # the remainder:low limb, yielding EDX:EAX without a 32-bit quotient
+    # overflow above UINT32_MAX Hz. This also retains long sample deltas.
+    c.extend(b"\x89\xc6\x89\xd0")  # esi=delta.low; eax=delta.high
+    c.extend(b"\xb9" + struct.pack("<I", apic_hz))
+    c.extend(b"\xf7\xe1\x89\xc7\x89\xd5")  # mul ecx; edi=middle; ebp=high
+    c.extend(b"\x89\xf0\xf7\xe1")  # eax=delta.low; mul ecx
+    c.extend(b"\x01\xfa\x83\xd5\x00")  # add edx,edi; adc ebp,0
+    c.extend(b"\x89\xc6\x89\xd0\x89\xea")  # esi=low; edx:eax=upper product
+    c.extend(b"\xf7\xf3\x89\xc7")  # div ebx; edi=quotient.high
+    c.extend(b"\x89\xf0\xf7\xf3\x89\xfa")  # div remainder:low; edx=quotient.high
+
+    # Preserve the full rate for QNX ClockCycles(). The original instruction
+    # block has identical lengths after replacing the load with mov eax,imm32
+    # and setting the high-store immediate. Only guest RAM is changed.
+    c.extend(b"\xc6\x05" + struct.pack('<I', QTIME_FREQUENCY_ADDRESS) + b"\xb8")
+    c.extend(b"\xa3" + struct.pack('<I', QTIME_FREQUENCY_ADDRESS + 1))
+    c.extend(b"\x89\x15" + struct.pack('<I', QTIME_FREQUENCY_ADDRESS + 12))
+    # cpu_freq is still a 32-bit legacy startup field (also used for CPU MHz
+    # metadata). Saturate it instead of wrapping or overwriting its neighbor.
+    # qtime receives the unsaturated 64-bit value above, including exact 2^32.
+    c.extend(b"\x85\xd2\x74\x05\xb8\xff\xff\xff\xff")
+    c.extend(b"\xa3" + struct.pack("<I", CPU_FREQUENCY_ADDRESS))
+    c.extend(b"\xc7\x05" + struct.pack("<II", APIC_FREQUENCY_ADDRESS, apic_hz))
+    c.extend(b"\x5d\x5f\x5e\x5b\xc3")
     return c
 
 
@@ -78,14 +117,15 @@ def make_envelope(source, output, provide_memory=False, memory_layout="legacy",
     code = bytearray(b"\xfa\xfc\xbc" + struct.pack("<I", 0x00090000))  # cli; cld; stack
     adapter_patches = []
     if qemu_clock_adapter:
+        validate_qtime_frequency_adapter(image, physical)
         expected = "034c2c37f60b86c40eb43e77636a8d84903ee77d1f2df250cdd9a98b134cfe8b"
         if hashlib.sha256(image).hexdigest() != expected:
             reference = (ROOT / "btld_00001275/Intel/fs/sda2/appimage.ifs").read_bytes()
             startup_size = struct.unpack_from("<I", reference, 32)[0]
             if image[256:startup_size - 4] != reference[256:startup_size - 4]:
                 raise ValueError("The adapter requires the analyzed original startup instructions")
-        # Replace one chipset table DATA record in guest memory, retaining
-        # its terminator and the original startup instruction stream.
+        # Replace one chipset table record in guest memory. Its callback
+        # also adapts the validated init_qtime frequency stores to 64 bits.
         for address, value in ((0x219160, 0x12378086), (0x219164, 0)):
             code.extend(b"\xc7\x05" + struct.pack("<II", address, value))
         for address in (0x21916C, 0x219170):  # name and init callback
@@ -168,6 +208,7 @@ def make_envelope(source, output, provide_memory=False, memory_layout="legacy",
             "ipl_memory_layout": memory_layout if provide_memory else None,
             "startup_max_cpus_override": startup_max_cpus,
             "qemu_clock_adapter": qemu_clock_adapter,
+            "qtime_frequency_bits": 64 if qemu_clock_adapter else None,
             "qemu_apic_hz": qemu_apic_hz if qemu_clock_adapter else None,
             "ram_size": ram_size, "source_sha256": hashlib.sha256(image).hexdigest()}
 
@@ -249,7 +290,7 @@ def main():
         "original_qnx_welcome_seen": any("Welcome QNX" in s for s in serial.values()),
         "custom_ifs_variant": args.ifs is not None,
         "original_hmi_rendered": False,
-        "note": "The original IFS file remains unchanged. Optional guest-memory changes are recorded in image metadata: IPL fields, -P boot argument, and/or the experimental QEMU chipset table/clock callback port. This is not complete NBT hardware emulation. The loader serial announcement is not QNX output.",
+        "note": "The original IFS file remains unchanged. Optional guest-memory changes are recorded in image metadata: IPL fields, -P boot argument, QEMU chipset clock callback and validated 64-bit init_qtime frequency stores. This is not complete NBT hardware emulation. The loader serial announcement is not QNX output.",
     }
     result.update(classify_evidence(serial, stdout))
     (folder / "result.json").write_text(json.dumps(result, indent=2), encoding="utf-8")

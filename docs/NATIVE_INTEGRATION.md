@@ -79,6 +79,45 @@ the actual QEMU WHPX probe failed, so it uses TCG. No Windows features were chan
 
 ## Checks
 
+### Clock calibration on fast host processors
+
+The QEMU clock adapter retains the full 64-bit TSC delta and computes
+`floor(TSC_delta * APIC_Hz / APIC_delta)` with a 96-bit intermediate product
+and a 64-bit quotient. The previous 32-bit `div` result raised a divide error
+above 4,294,967,295 Hz, leaving startup at `Chipset: QEMU virtual-PC clock adapter`
+while the viewer continued waiting for its first frame and keyboard adapter.
+The independent Windows startup animation could still finish normally.
+
+The supported NBT startup stores `cpu_freq` in 32 bits, but QNX 6.5's
+[`qtime.cycles_per_sec`](https://qnx.com/developers/docs/6.5.0SP1.update/com.qnx.doc.neutrino_lib_ref/s/syspage_entry.html)
+is 64 bits. The adapter therefore also changes the validated `init_qtime`
+load/store immediates in guest RAM to deliver both halves of the measured rate.
+The source IFS is not changed. An unexpected instruction block is rejected
+before building the envelope; this is specific to the already-supported
+HU_NBT startup, not a general patch for other QNX firmware.
+
+The legacy `cpu_freq` field is saturated at `UINT32_MAX` when necessary:
+CPU MHz metadata derived from that field is capped, but the kernel timebase
+receives the full rate. Simply storing eight bytes into `cpu_freq` would corrupt
+the adjacent startup pointer. Existing boot caches are invalidated automatically
+because their identity includes the loader source hash.
+
+The regression suite executes the emitted x86 instructions and the adapted
+QNX store block in Unicorn against synthetic counters. It requires no firmware,
+QEMU, GPU, or Windows hypervisor. Unicorn is a test-only dependency:
+
+```powershell
+py -3 -m pip install unicorn
+py -3 tools/test_clock_adapter.py -v
+```
+
+Coverage includes the exact 2^32 boundary, 4.3/5/10 GHz, both supported APIC
+clock sources, long sample deltas, TSC wraparound, preserved registers, and
+rejection of changed startup instructions. Ordinary WHPX and TCG operation
+do not require `icount` as a workaround for this overflow.
+
+### Integration checks
+
 ```powershell
 py -3 -m unittest discover -s work/graphics-port/hmi-runner/tests -q
 py -3 tools/test_native_sports_contract.py -q
