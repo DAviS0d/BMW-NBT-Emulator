@@ -20,6 +20,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 import tkinter as tk
 from tkinter import ttk
+try:
+    from PIL import Image, ImageTk
+except ImportError:
+    Image = ImageTk = None
 
 sys.dont_write_bytecode = True
 HERE = Path(__file__).resolve().parent
@@ -105,6 +109,8 @@ class LiveViewer:
         self.presentations_seen = False
         self.full_photo = None
         self.display_photo = None
+        self.fast_photo = None
+        self.last_payload = None
         self.frame_loads = 0
         self.started = time.monotonic()
         self.proof_directory = HERE / "viewer-runs" / f"viewer-{time.time_ns()}"
@@ -689,24 +695,29 @@ class LiveViewer:
                     return
                 self.startup_active = False
                 self._event("startup_screen_replaced_by_hmi")
-            if self.full_photo is not None and self.full_photo.width()==width and self.full_photo.height()==height:
-                photo = self.full_photo
-                photo.configure(data=payload, format="PPM")
-            else:
-                photo = tk.PhotoImage(master=self.root, data=payload, format="PPM")
             divisor = max(1, math.ceil(width / self.max_frame_width),
                           math.ceil(height / self.max_frame_height))
-            displayed = photo if divisor == 1 else photo.subsample(divisor, divisor)
+            displayed = self._fast_frame(payload, header.end(), width, height) if divisor == 1 else None
+            if displayed is not None:
+                photo = displayed
+            else:
+                if self.full_photo is not None and self.full_photo.width()==width and self.full_photo.height()==height:
+                    photo = self.full_photo
+                    photo.configure(data=payload, format="PPM")
+                else:
+                    photo = tk.PhotoImage(master=self.root, data=payload, format="PPM")
+                displayed = photo if divisor == 1 else photo.subsample(divisor, divisor)
+                self.full_photo = photo
             if displayed is not self.display_photo:
                 self.image_label.configure(image=displayed, text="")
-            self.full_photo, self.display_photo = photo, displayed
+            self.display_photo = displayed
             self.root.update_idletasks()
             self.last_frame_stamp = stamp
             self.frame_loads += 1
+            self.last_payload = payload
             self.proof["last_frame_dimensions"] = [width, height]
             self.proof["last_display_dimensions"] = [displayed.width(), displayed.height()]
             self.proof["last_subsample_divisor"] = divisor
-            self.proof["last_display_source_sha256"] = hashlib.sha256(payload).hexdigest()
             self.proof["last_display_widget_mapped"] = bool(self.image_label.winfo_ismapped())
             if self.first_frame_time is None:
                 self.first_frame_time = time.monotonic()
@@ -725,6 +736,22 @@ class LiveViewer:
             # A renderer replaces its current frame atomically. Keep the last
             # valid image if file replacement or decoding overlaps this poll.
             return
+
+    def _fast_frame(self, payload, offset, width, height):
+        """Pillow blits raw RGB about 3x faster than Tk's PPM decoder; None means use Tk."""
+        if ImageTk is None:
+            return None
+        try:
+            image = Image.frombuffer("RGB", (width, height), memoryview(payload)[offset:],
+                                     "raw", "RGB", 0, 1)
+            photo = self.fast_photo
+            if photo is not None and photo.width() == width and photo.height() == height:
+                photo.paste(image)
+            else:
+                photo = self.fast_photo = ImageTk.PhotoImage(image, master=self.root)
+            return photo
+        except (ValueError, tk.TclError, OSError):
+            return None
 
     def request_stop(self):
         if self.stop_event.is_set():
@@ -746,6 +773,9 @@ class LiveViewer:
         self.request_stop()
 
     def _write_verification(self):
+        if self.last_payload is not None:
+            # Hashed only when the report is written, not on every displayed frame.
+            self.proof["last_display_source_sha256"] = hashlib.sha256(self.last_payload).hexdigest()
         self.proof.update(updated_utc=utc_now(), frame_loads=self.frame_loads,
                           worker_finished=self.worker_finished,
                           worker_error=self.worker_error,

@@ -1,4 +1,4 @@
-"""Desktop launcher for BMW NBT and its local tools. No extra packages required."""
+"""Desktop launcher for BMW NBT and its local tools. Installs missing requirements.txt packages itself."""
 import argparse
 import json
 import os
@@ -19,6 +19,48 @@ ROOT = Path(__file__).resolve().parent
 RUNNER = ROOT / 'work/graphics-port/hmi-runner'
 sys.path.insert(0, str(RUNNER))
 import webui
+
+REQUIREMENTS = ROOT / 'requirements.txt'
+# Runs in the viewer's interpreter, which can differ from the launcher's own.
+MISSING_SCRIPT = (
+    'import importlib.util, json, sys\n'
+    'missing = [spec for spec, module in json.loads(sys.argv[1]) if importlib.util.find_spec(module) is None]\n'
+    'print(json.dumps({"missing": missing, "venv": sys.prefix != sys.base_prefix}))\n')
+
+
+def runtime_requirements():
+    """(pip requirement, import name) pairs from requirements.txt."""
+    pairs = []
+    for line in REQUIREMENTS.read_text(encoding='utf-8').splitlines():
+        spec, _, comment = line.partition('#')
+        spec, comment = spec.strip(), comment.strip()
+        if spec and comment.startswith('import '):
+            pairs.append((spec, comment.split()[1]))
+    return pairs
+
+
+def install_missing_requirements(python, report):
+    """Installs missing runtime packages into the viewer's interpreter. Returns True when nothing is missing."""
+    hidden = subprocess.CREATE_NO_WINDOW
+    pairs = runtime_requirements()
+    check = subprocess.run([str(python), '-c', MISSING_SCRIPT, json.dumps(pairs)],
+                           capture_output=True, text=True, timeout=60, creationflags=hidden)
+    state = json.loads(check.stdout)
+    if not state['missing']:
+        return True
+    report('Installing missing Python packages: ' + ', '.join(state['missing']) + ' …')
+    command = [str(python), '-m', 'pip', 'install', '--disable-pip-version-check', '--quiet']
+    if not state['venv']:
+        command.append('--user')   # no administrator rights needed for a system-wide Python
+    result = subprocess.run(command + state['missing'], capture_output=True, text=True,
+                            timeout=600, creationflags=hidden)
+    if result.returncode:
+        detail = (result.stderr or result.stdout).strip().splitlines()
+        report('Package installation failed (the emulator still runs, with slower drawing): '
+               + (detail[-1] if detail else 'pip exit %d' % result.returncode))
+        return False
+    report('Python packages installed.')
+    return True
 
 
 class Launcher:
@@ -72,7 +114,17 @@ class Launcher:
                    9, '#8ea2b8').pack(anchor='w', padx=28, pady=(12, 3))
         self.label('Closing the launcher leaves the emulator running.', 9, '#687f96').pack(anchor='w', padx=28, pady=(0, 18))
         self.append('Ready. Software CPU startup usually takes about 25 seconds.')
+        self.requirements_busy = True
+        threading.Thread(target=self.check_requirements, daemon=True).start()
         root.after(100, self.poll)
+
+    def check_requirements(self):
+        try:
+            install_missing_requirements(self.python, lambda text: self.events.put(('text', text)))
+        except (OSError, ValueError, subprocess.TimeoutExpired) as error:
+            self.events.put(('text', 'Package check skipped: ' + str(error)))
+        finally:
+            self.events.put(('requirements', None))
 
     def label(self, text, size, color):
         return tk.Label(self.root, text=text, bg='#0b1017', fg=color, font=('Segoe UI', size))
@@ -184,6 +236,8 @@ class Launcher:
                 break
             if kind == 'text':
                 self.append(data)
+            elif kind == 'requirements':
+                self.requirements_busy = False
             elif kind == 'started' and data[0] == 'simulator':
                 self.simulator = data[1]
                 self.sim_button.configure(text='Stop vehicle simulator', state='normal')
@@ -209,7 +263,10 @@ class Launcher:
             else:
                 self.state.set('Starting emulator…' if pending else 'Emulator stopped')
                 self.detail.set('Waiting for the VM process' if pending else 'Choose Start BMW emulator to boot')
-            self.start_button.configure(state='disabled' if state['running'] or pending else 'normal')
+            if self.requirements_busy and not state['running']:
+                self.detail.set('Checking Python packages…')
+            self.start_button.configure(
+                state='disabled' if state['running'] or pending or self.requirements_busy else 'normal')
             self.stop_button.configure(state='normal' if state['running'] else 'disabled')
         except OSError as error:
             self.detail.set(str(error))

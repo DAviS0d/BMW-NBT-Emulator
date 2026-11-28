@@ -1,0 +1,3 @@
+# Runtime packages. The desktop launcher installs any missing one automatically.
+# Format: <pip requirement>  # import <module checked before installing>
+pillow>=10  # import PIL

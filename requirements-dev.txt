@@ -1,0 +1,4 @@
+# Developer tools and tests only; not needed to run the emulator.
+-r requirements.txt
+unicorn     # tools/test_clock_adapter.py
+capstone    # tools/trace_nbt_*.py, tools/test_native_sports_contract.py

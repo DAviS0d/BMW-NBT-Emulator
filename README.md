@@ -58,8 +58,20 @@ Our long-term vision is to provide a flexible and realistic platform that combin
 
 ## Requirements
 
+### Windows development / Raspberry Pi runtime
+
+The original NBT main menu and native keyboard navigation now also run on
+Raspberry Pi 4 ARM64, using QEMU TCG and the native Linux EGL/GLES renderer.
+The Pi port has its own desktop launcher; the Windows instructions below still
+apply to the existing Windows version. Cold boot on the tested Pi takes about
+100 seconds. See [Raspberry Pi setup and verified limits](docs/RASPBERRY_PI.md).
+Arduino connects by USB to the Pi. The DiyMore MCP2515 USB/SocketCAN adapter passed
+internal hardware loopback tests; the RXB1 workaround and remaining physical-bus
+limits are documented in the Pi guide. No external CAN device is connected yet.
+
 - Windows 10/11 x64 with **Windows Hypervisor Platform** enabled (Windows Features → "Windows Hypervisor Platform").
 - **Python 3** with Tkinter, through the `py` launcher (from python.org). Tested with Python 3.14.
+- **Pillow** (listed in `requirements.txt`): the launcher installs it automatically on first start if it is missing (manually: `py -3 -m pip install -r requirements.txt`). It draws each frame about 3× faster than Tk alone; without it the viewer still works through Tk. Developer tools and tests: `requirements-dev.txt`.
 - A graphics card with Direct3D 11.
 
 QEMU 11.1.0 and ANGLE are included (see `NOTICE.md`).
@@ -116,6 +128,7 @@ Open an issue on GitHub ("Issues" → "New issue") with:
 - **ANGLE** — OpenGL ES on top of Direct3D on Windows (BSD-3-Clause).
 - **qemu-mhi2** (iscle) — the idea and first prototype of GLES forwarding this project started from. The current bridge is a clean-room reimplementation and contains no qemu-mhi2 code.
 - **DoomGeneric** (ozkl) — used in a separate DOOM experiment, not included here.
+- **netdog** ([netdogy](https://github.com/netdogy/BMW-NBT-Emulator)) — the 64-bit TSC calibration and QNX `qtime` handoff fix, so the emulator also starts on host processors faster than 4.29 GHz, with its Unicorn regression test.
 
 ## Developers
 
